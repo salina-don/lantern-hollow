@@ -11,6 +11,9 @@ import { wouldCollide } from '../systems/collision';
 const SPEED = 5;
 const INTERACT_DIST = 3.2;
 const BODY_COLOR = '#3355CC';
+const LEG_COLOR = '#222A60';
+const SKIN = '#F5CBA7';
+const HAIR = '#5a3a1a';
 const held: Record<string, boolean> = {};
 
 function findNearestNpc(px: number, pz: number): string | null {
@@ -26,6 +29,11 @@ function findNearestNpc(px: number, pz: number): string | null {
 
 export function PlayerMesh() {
   const groupRef = useRef<THREE.Group>(null);
+  const leftArmRef = useRef<THREE.Group>(null);
+  const rightArmRef = useRef<THREE.Group>(null);
+  const leftLegRef = useRef<THREE.Group>(null);
+  const rightLegRef = useRef<THREE.Group>(null);
+
   const initPos = useGameStore.getState().playerPosition;
   const posRef = useRef<[number, number, number]>([...initPos] as [number, number, number]);
   const facingRef = useRef(0);
@@ -62,7 +70,7 @@ export function PlayerMesh() {
     };
   }, []);
 
-  useFrame((_, delta) => {
+  useFrame(({ clock }, delta) => {
     const [x, y, z] = posRef.current;
     const yaw = cameraYaw.current;
     let dx = 0;
@@ -113,35 +121,66 @@ export function PlayerMesh() {
         0.2,
       );
     }
+
+    // Minecraft-style limb swing
+    const swing = rawLen > 0 ? Math.sin(clock.elapsedTime * 8) * 0.6 : 0;
+    if (leftArmRef.current) leftArmRef.current.rotation.x = THREE.MathUtils.lerp(leftArmRef.current.rotation.x, swing, 0.12);
+    if (rightArmRef.current) rightArmRef.current.rotation.x = THREE.MathUtils.lerp(rightArmRef.current.rotation.x, -swing, 0.12);
+    if (leftLegRef.current) leftLegRef.current.rotation.x = THREE.MathUtils.lerp(leftLegRef.current.rotation.x, -swing, 0.12);
+    if (rightLegRef.current) rightLegRef.current.rotation.x = THREE.MathUtils.lerp(rightLegRef.current.rotation.x, swing, 0.12);
   });
 
   return (
     <group ref={groupRef} position={[initPos[0], initPos[1], initPos[2]]}>
-      {/* Body / tunic */}
-      <mesh position={[0, 0.75, 0]} castShadow>
-        <capsuleGeometry args={[0.25, 0.7, 4, 8]} />
+      {/* Torso */}
+      <mesh position={[0, 0.975, 0]} castShadow>
+        <boxGeometry args={[0.36, 0.55, 0.22]} />
         <meshLambertMaterial color={BODY_COLOR} />
       </mesh>
+
       {/* Head */}
-      <mesh position={[0, 1.55, 0]} castShadow>
-        <sphereGeometry args={[0.22, 8, 8]} />
-        <meshLambertMaterial color="#F5CBA7" />
+      <mesh position={[0, 1.46, 0]} castShadow>
+        <boxGeometry args={[0.42, 0.42, 0.42]} />
+        <meshLambertMaterial color={SKIN} />
       </mesh>
-      {/* Hair */}
-      <mesh position={[0, 1.73, -0.02]} castShadow>
-        <sphereGeometry args={[0.23, 6, 4]} />
-        <meshLambertMaterial color="#5a3a1a" />
+
+      {/* Hair cap */}
+      <mesh position={[0, 1.70, 0]} castShadow>
+        <boxGeometry args={[0.44, 0.06, 0.44]} />
+        <meshLambertMaterial color={HAIR} />
       </mesh>
-      {/* Left arm */}
-      <mesh position={[-0.36, 1.0, 0]} rotation={[0, 0, 0.25]} castShadow>
-        <capsuleGeometry args={[0.07, 0.4, 3, 6]} />
-        <meshLambertMaterial color={BODY_COLOR} />
-      </mesh>
-      {/* Right arm */}
-      <mesh position={[0.36, 1.0, 0]} rotation={[0, 0, -0.25]} castShadow>
-        <capsuleGeometry args={[0.07, 0.4, 3, 6]} />
-        <meshLambertMaterial color={BODY_COLOR} />
-      </mesh>
+
+      {/* Left arm pivot (shoulder) */}
+      <group ref={leftArmRef} position={[-0.26, 1.25, 0]}>
+        <mesh position={[0, -0.275, 0]} castShadow>
+          <boxGeometry args={[0.14, 0.55, 0.14]} />
+          <meshLambertMaterial color={BODY_COLOR} />
+        </mesh>
+      </group>
+
+      {/* Right arm pivot */}
+      <group ref={rightArmRef} position={[0.26, 1.25, 0]}>
+        <mesh position={[0, -0.275, 0]} castShadow>
+          <boxGeometry args={[0.14, 0.55, 0.14]} />
+          <meshLambertMaterial color={BODY_COLOR} />
+        </mesh>
+      </group>
+
+      {/* Left leg pivot (hip) */}
+      <group ref={leftLegRef} position={[-0.1, 0.7, 0]}>
+        <mesh position={[0, -0.35, 0]} castShadow>
+          <boxGeometry args={[0.16, 0.7, 0.17]} />
+          <meshLambertMaterial color={LEG_COLOR} />
+        </mesh>
+      </group>
+
+      {/* Right leg pivot */}
+      <group ref={rightLegRef} position={[0.1, 0.7, 0]}>
+        <mesh position={[0, -0.35, 0]} castShadow>
+          <boxGeometry args={[0.16, 0.7, 0.17]} />
+          <meshLambertMaterial color={LEG_COLOR} />
+        </mesh>
+      </group>
     </group>
   );
 }
