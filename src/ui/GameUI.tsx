@@ -3,6 +3,7 @@ import { View, StyleSheet } from 'react-native';
 import { HUD } from './HUD';
 import { ChatBox } from './ChatBox';
 import { LogPanel } from './LogPanel';
+import { RumorPanel } from './RumorPanel';
 import { ApiKeyField } from './ApiKeyField';
 import { Joystick } from './Joystick';
 
@@ -16,6 +17,8 @@ export function GameUI() {
       </View>
       <View style={styles.bottomRow} pointerEvents="box-none">
         <View style={styles.leftCol} pointerEvents="box-none">
+          <RumorPanel />
+          <View style={styles.gap} />
           <Joystick />
         </View>
         <View style={styles.rightCol} pointerEvents="box-none">

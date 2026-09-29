@@ -1,6 +1,6 @@
 import { useGameStore, Vec3 } from '../state/gameStore';
+import { NPC_CONFIG_MAP } from '../entities/npcConfig';
 import { randomLocation } from '../world/locations';
-import { npcToNPCExchange } from './conversationSystem';
 
 const NPC_SPEED = 2.5;
 const TALK_DIST = 2.2;
@@ -11,11 +11,44 @@ function dist2D(a: Vec3, b: Vec3): number {
   return Math.sqrt((a[0] - b[0]) ** 2 + (a[2] - b[2]) ** 2);
 }
 
-// Called every frame from useFrame — moves NPCs toward their targets
+// Personality lines for sharing / receiving a rumor
+const SHARE_LINES: Record<string, string> = {
+  alice: 'Oh, you simply must hear this — {fact}!',
+  bob: 'Word is: {fact}.',
+  miller: 'Oh oh, have you heard?! {fact}!',
+  elara: 'The winds carry word that {fact}.',
+  finn: 'Report: {fact}.',
+};
+const RECEIVE_LINES: Record<string, string> = {
+  alice: "Oh my, really?! I had no idea!",
+  bob: 'Hm. Noted.',
+  miller: "You don't say! How fascinating!",
+  elara: "So the patterns shift...",
+  finn: "Understood. Logged.",
+};
+
+function shareLine(npcId: string, fact: string): string {
+  const tmpl = SHARE_LINES[npcId] ?? 'Did you hear? {fact}.';
+  return tmpl.replace('{fact}', fact);
+}
+function receiveLine(npcId: string): string {
+  return RECEIVE_LINES[npcId] ?? "I hadn't heard that.";
+}
+
+function scheduleBubble(npcId: string, text: string, delayMs = 0): void {
+  setTimeout(() => {
+    useGameStore.getState().setSpeechBubble(npcId, text);
+    setTimeout(() => {
+      useGameStore.getState().setSpeechBubble(npcId, null);
+    }, 4000);
+  }, delayMs);
+}
+
+// Called every frame — moves NPCs, handles follow + pending deliveries
 export function tickNPCs(delta: number): void {
   const store = useGameStore.getState();
   for (const npc of store.npcs) {
-    // Following: update target to stay near the player
+    // ── follow mode ──────────────────────────────────────────────────────────
     if (npc.following === 'player') {
       const playerPos = store.playerPosition;
       const d = dist2D(npc.position, playerPos);
@@ -34,6 +67,34 @@ export function tickNPCs(delta: number): void {
       }
     }
 
+    // ── pending delivery arrival check ───────────────────────────────────────
+    if (npc.pendingDelivery && !npc.isTalking) {
+      const { toNpcId, rumorId, message } = npc.pendingDelivery;
+      const target = store.npcs.find((n) => n.id === toNpcId);
+      if (target && dist2D(npc.position, target.position) <= TALK_DIST) {
+        // Arrived — clear delivery, start talking, spread rumor, show bubbles
+        store.setPendingDelivery(npc.id, null);
+        store.moveNPC(npc.id, null);
+        store.setNPCTalking(npc.id, toNpcId);
+        store.setNPCTalking(toNpcId, npc.id);
+        store.spreadRumor(rumorId, toNpcId);
+
+        const senderCfg = NPC_CONFIG_MAP[npc.id];
+        const receiverCfg = NPC_CONFIG_MAP[toNpcId];
+        store.addLog(`${senderCfg?.name ?? npc.id} delivers: "${message}" → ${receiverCfg?.name ?? toNpcId}`);
+
+        scheduleBubble(npc.id, `${receiverCfg?.name ?? 'hey'}, ${message}`);
+        scheduleBubble(toNpcId, receiveLine(toNpcId), 2500);
+
+        setTimeout(() => {
+          useGameStore.getState().setNPCTalking(npc.id, null);
+          useGameStore.getState().setNPCTalking(toNpcId, null);
+          useGameStore.getState().setNPCActivity(npc.id, 'delivered message');
+        }, 6000);
+      }
+    }
+
+    // ── movement ─────────────────────────────────────────────────────────────
     if (!npc.targetPosition) continue;
     const d = dist2D(npc.position, npc.targetPosition);
     if (d < ARRIVE_DIST) {
@@ -49,33 +110,53 @@ export function tickNPCs(delta: number): void {
   }
 }
 
-// Periodically check if two NPCs are close enough to share a rumor
+// ── NPC rumor exchange ────────────────────────────────────────────────────────
+
 function checkInteractions(): void {
   const store = useGameStore.getState();
   const npcs = store.npcs;
+
   for (let i = 0; i < npcs.length; i++) {
     for (let j = i + 1; j < npcs.length; j++) {
       const a = npcs[i];
       const b = npcs[j];
       if (a.isTalking || b.isTalking) continue;
+      if (a.following || b.following) continue;
       if (dist2D(a.position, b.position) > TALK_DIST) continue;
 
-      // Share a random memory from whichever NPC has one
-      const donor = a.memory.length >= b.memory.length ? a : b;
+      // Find a rumor A knows that B doesn't
+      const rumorToShare = Object.values(store.rumors).find(
+        (r) => r.knownBy.includes(a.id) && !r.knownBy.includes(b.id),
+      ) ?? Object.values(store.rumors).find(
+        (r) => r.knownBy.includes(b.id) && !r.knownBy.includes(a.id),
+      );
+
+      if (!rumorToShare) continue;
+
+      const donor = rumorToShare.knownBy.includes(a.id) ? a : b;
       const receiver = donor.id === a.id ? b : a;
-      if (donor.memory.length === 0) continue;
-      const rumor = donor.memory[Math.floor(Math.random() * donor.memory.length)];
-      const alreadyKnows = receiver.memory.some((m) => m.fact === rumor.fact);
-      if (alreadyKnows) continue;
 
       store.setNPCTalking(donor.id, receiver.id);
       store.setNPCTalking(receiver.id, donor.id);
-      npcToNPCExchange(donor.id, receiver.id, rumor.fact);
+      store.spreadRumor(rumorToShare.id, receiver.id);
 
+      const donorCfg = NPC_CONFIG_MAP[donor.id];
+      const receiverCfg = NPC_CONFIG_MAP[receiver.id];
+      store.addLog(
+        `${donorCfg?.name ?? donor.id} tells ${receiverCfg?.name ?? receiver.id}: "${rumorToShare.text}"`,
+      );
+
+      scheduleBubble(donor.id, shareLine(donor.id, rumorToShare.text));
+      scheduleBubble(receiver.id, receiveLine(receiver.id), 3000);
+
+      const dId = donor.id;
+      const rId = receiver.id;
       setTimeout(() => {
-        useGameStore.getState().setNPCTalking(donor.id, null);
-        useGameStore.getState().setNPCTalking(receiver.id, null);
-      }, 3000);
+        useGameStore.getState().setNPCTalking(dId, null);
+        useGameStore.getState().setNPCTalking(rId, null);
+      }, 6500);
+
+      break; // one exchange per tick
     }
   }
 }
@@ -90,7 +171,7 @@ export function startNPCWander(): () => void {
       setTimeout(() => {
         const store = useGameStore.getState();
         const npc = store.npcs.find((n) => n.id === npcId);
-        if (npc && !npc.isTalking && !npc.following) {
+        if (npc && !npc.isTalking && !npc.following && !npc.pendingDelivery) {
           const loc = randomLocation();
           store.moveNPC(npcId, loc.position);
           store.setNPCActivity(npcId, `heading to ${loc.name}`);

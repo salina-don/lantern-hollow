@@ -184,12 +184,16 @@ export async function executeAction(npcId: string, action: ParsedAction): Promis
       break;
 
     case 'deliver_message': {
-      store.addMemory(npcId, {
-        fact: `Deliver to ${action.toNpcName}: "${action.message}"`,
-        source: 'player',
+      // Register the message as a global rumor (player is origin, messenger is first knower)
+      const rumorId = store.addRumor(action.message, 'player', npcId);
+      // Queue a pending delivery — the NPC will walk to the target and deliver on arrival
+      store.setPendingDelivery(npcId, {
+        toNpcId: action.toNpcId,
+        rumorId,
+        message: action.message,
       });
-      store.addMemory(action.toNpcId, { fact: action.message, source: config.name });
-      store.setNPCActivity(npcId, `delivering message to ${action.toNpcName}`);
+      store.setNPCFollowing(npcId, null);
+      store.setNPCActivity(npcId, `heading to find ${action.toNpcName}`);
       const target = store.npcs.find((n) => n.id === action.toNpcId);
       if (target) store.moveNPC(npcId, target.position);
       break;

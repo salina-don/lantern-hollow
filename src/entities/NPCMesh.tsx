@@ -15,10 +15,19 @@ export function NPCMesh({ npcId }: Props) {
   const setActiveConversation = useGameStore((s) => s.setActiveConversation);
   const addLog = useGameStore((s) => s.addLog);
 
+  const talkingToPos = useGameStore((s) => {
+    const me = s.npcs.find((n) => n.id === npcId);
+    if (!me?.talkingTo) return null;
+    return s.npcs.find((n) => n.id === me.talkingTo)?.position ?? null;
+  });
+
   const config = NPC_CONFIG_MAP[npcId];
   if (!npc || !config) return null;
 
   const [x, y, z] = npc.position;
+  const facingY = talkingToPos
+    ? Math.atan2(talkingToPos[0] - x, talkingToPos[2] - z)
+    : 0;
 
   const handleClick = () => {
     setActiveConversation(npcId);
@@ -26,7 +35,7 @@ export function NPCMesh({ npcId }: Props) {
   };
 
   return (
-    <group position={[x, y, z]}>
+    <group position={[x, y, z]} rotation={[0, facingY, 0]}>
       {/* Ground ring: gold when selected, white when nearby, hidden otherwise */}
       {(isSelected || isNearby) && (
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]}>

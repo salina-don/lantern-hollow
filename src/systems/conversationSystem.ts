@@ -23,6 +23,11 @@ export async function playerSaysToNPC(npcId: string, text: string): Promise<stri
 
   store.addMessage({ from: 'player', to: npcId, text });
 
+  // Informational statements (not questions) become global rumors the NPC can spread
+  if (!text.endsWith('?') && text.length > 4) {
+    store.addRumor(text, 'player', npcId);
+  }
+
   // "tell me about X" / "what do you know about X"
   const aboutMatch = text.match(/(?:tell me about|what do you know about|know about)\s+(.+)/i);
   if (aboutMatch) {

@@ -17,6 +17,19 @@ export interface Memory {
   timestamp: number;
 }
 
+export interface RumorEntry {
+  id: string;
+  text: string;
+  origin: string; // 'player' or npc id that originated it
+  knownBy: string[]; // npc ids
+}
+
+export interface PendingDelivery {
+  toNpcId: string;
+  rumorId: string;
+  message: string;
+}
+
 export interface NpcState {
   id: string;
   name: string;
@@ -28,6 +41,7 @@ export interface NpcState {
   talkingTo: string | null;
   following: 'player' | null;
   speechBubble: string | null;
+  pendingDelivery: PendingDelivery | null;
 }
 
 interface GameStore {
@@ -38,6 +52,7 @@ interface GameStore {
   apiKey: string;
   activeConversation: string | null;
   nearbyNpcId: string | null;
+  rumors: Record<string, RumorEntry>;
 
   setPlayerPosition: (pos: Vec3) => void;
   moveNPC: (id: string, target: Vec3 | null) => void;
@@ -52,6 +67,9 @@ interface GameStore {
   setNPCTalking: (npcId: string, talkingTo: string | null) => void;
   setNPCFollowing: (npcId: string, following: 'player' | null) => void;
   setSpeechBubble: (npcId: string, text: string | null) => void;
+  setPendingDelivery: (npcId: string, delivery: PendingDelivery | null) => void;
+  addRumor: (text: string, origin: string, initialKnower: string) => string;
+  spreadRumor: (rumorId: string, toNpcId: string) => void;
 }
 
 const INITIAL_NPCS: NpcState[] = NPC_CONFIGS.map((c) => ({
@@ -65,9 +83,10 @@ const INITIAL_NPCS: NpcState[] = NPC_CONFIGS.map((c) => ({
   talkingTo: null,
   following: null,
   speechBubble: null,
+  pendingDelivery: null,
 }));
 
-export const useGameStore = create<GameStore>()((set) => ({
+export const useGameStore = create<GameStore>()((set, get) => ({
   playerPosition: [0, 0, 5],
   npcs: INITIAL_NPCS,
   messages: [],
@@ -75,11 +94,11 @@ export const useGameStore = create<GameStore>()((set) => ({
     'Welcome to Lantern Hollow.',
     'WASD to move · Drag to rotate camera',
     'Click an NPC or press E nearby to talk',
-    '"tell Alice to go to tavern" · "tell Bob that <rumour>"',
   ],
   apiKey: '',
   activeConversation: null,
   nearbyNpcId: null,
+  rumors: {},
 
   setPlayerPosition: (pos) => set({ playerPosition: pos }),
 
@@ -155,4 +174,78 @@ export const useGameStore = create<GameStore>()((set) => ({
         npc.id === npcId ? { ...npc, speechBubble: text } : npc,
       ),
     })),
+
+  setPendingDelivery: (npcId, delivery) =>
+    set((state) => ({
+      npcs: state.npcs.map((npc) =>
+        npc.id === npcId ? { ...npc, pendingDelivery: delivery } : npc,
+      ),
+    })),
+
+  addRumor: (text, origin, initialKnower) => {
+    const existing = Object.values(get().rumors).find(
+      (r) => r.text.toLowerCase() === text.toLowerCase(),
+    );
+    if (existing) {
+      if (!existing.knownBy.includes(initialKnower)) {
+        set((state) => ({
+          rumors: {
+            ...state.rumors,
+            [existing.id]: {
+              ...existing,
+              knownBy: [...existing.knownBy, initialKnower],
+            },
+          },
+          npcs: state.npcs.map((npc) =>
+            npc.id === initialKnower
+              ? {
+                  ...npc,
+                  memory: [...npc.memory, { fact: text, source: origin, timestamp: Date.now() }].slice(-20),
+                }
+              : npc,
+          ),
+        }));
+      }
+      return existing.id;
+    }
+    const id = Math.random().toString(36).slice(2, 9);
+    set((state) => ({
+      rumors: {
+        ...state.rumors,
+        [id]: { id, text, origin, knownBy: [initialKnower] },
+      },
+      npcs: state.npcs.map((npc) =>
+        npc.id === initialKnower
+          ? {
+              ...npc,
+              memory: [...npc.memory, { fact: text, source: origin, timestamp: Date.now() }].slice(-20),
+            }
+          : npc,
+      ),
+    }));
+    return id;
+  },
+
+  spreadRumor: (rumorId, toNpcId) =>
+    set((state) => {
+      const rumor = state.rumors[rumorId];
+      if (!rumor || rumor.knownBy.includes(toNpcId)) return state;
+      return {
+        rumors: {
+          ...state.rumors,
+          [rumorId]: { ...rumor, knownBy: [...rumor.knownBy, toNpcId] },
+        },
+        npcs: state.npcs.map((npc) =>
+          npc.id === toNpcId
+            ? {
+                ...npc,
+                memory: [
+                  ...npc.memory,
+                  { fact: rumor.text, source: rumor.origin, timestamp: Date.now() },
+                ].slice(-20),
+              }
+            : npc,
+        ),
+      };
+    }),
 }));
