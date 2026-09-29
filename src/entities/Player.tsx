@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { useGameStore } from '../state/gameStore';
 import { cameraYaw } from '../world/cameraState';
 import { startConversation } from '../systems/questSystem';
+import { BoxFace } from './BoxFace';
 import { joystickInput } from './joystickState';
 import { wouldCollide } from '../systems/collision';
 
@@ -144,6 +145,8 @@ export function PlayerMesh() {
         <boxGeometry args={[0.44, 0.06, 0.44]} />
         <meshLambertMaterial color={HAIR} />
       </mesh>
+
+      <BoxFace />
 
       {/* Left arm pivot (shoulder) */}
       <group ref={leftArmRef} position={[-0.26, 1.25, 0]}>

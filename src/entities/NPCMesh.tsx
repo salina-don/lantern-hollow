@@ -5,6 +5,7 @@ import { Text, Billboard } from '@react-three/drei';
 import { useGameStore } from '../state/gameStore';
 import { NPC_CONFIG_MAP } from './npcConfig';
 import { startConversation } from '../systems/questSystem';
+import { BoxFace } from './BoxFace';
 
 const SKIN = '#F5CBA7';
 
@@ -138,6 +139,8 @@ export function NPCMesh({ npcId }: Props) {
         <boxGeometry args={[0.42, 0.42, 0.42]} />
         <meshLambertMaterial color={SKIN} />
       </mesh>
+
+      <BoxFace />
 
       {/* Left arm pivot */}
       <group ref={leftArmRef} position={[-0.26, 1.25, 0]}>
