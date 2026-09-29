@@ -4,6 +4,7 @@ import { HUD } from './HUD';
 import { ChatBox } from './ChatBox';
 import { LogPanel } from './LogPanel';
 import { ApiKeyField } from './ApiKeyField';
+import { Joystick } from './Joystick';
 
 export function GameUI() {
   return (
@@ -14,10 +15,12 @@ export function GameUI() {
         <ApiKeyField />
       </View>
       <View style={styles.bottomRow} pointerEvents="box-none">
-        <View style={styles.half}>
-          <LogPanel />
+        <View style={styles.leftCol} pointerEvents="box-none">
+          <Joystick />
         </View>
-        <View style={styles.half}>
+        <View style={styles.rightCol} pointerEvents="box-none">
+          <LogPanel />
+          <View style={styles.gap} />
           <ChatBox />
         </View>
       </View>
@@ -39,8 +42,14 @@ const styles = StyleSheet.create({
   bottomRow: {
     flexDirection: 'row',
     padding: 10,
-    gap: 10,
     alignItems: 'flex-end',
+    gap: 10,
   },
-  half: { flex: 1 },
+  leftCol: {
+    justifyContent: 'flex-end',
+  },
+  rightCol: {
+    flex: 1,
+  },
+  gap: { height: 6 },
 });
