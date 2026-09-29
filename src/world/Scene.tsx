@@ -8,7 +8,7 @@ import { NPCMesh } from '../entities/NPCMesh';
 import { ThirdPersonCamera } from './ThirdPersonCamera';
 import { tickNPCs, startNPCWander } from '../systems/npcAI';
 
-const INITIAL_NPC_IDS = ['alice', 'bob', 'miller'];
+const INITIAL_NPC_IDS = ['alice', 'bob', 'miller', 'elara', 'finn'];
 
 function GameLoop() {
   useFrame((_, delta) => tickNPCs(delta));

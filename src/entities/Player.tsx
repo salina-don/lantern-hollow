@@ -3,12 +3,25 @@ import { useFrame } from '@react-three/fiber';
 import { Platform } from 'react-native';
 import * as THREE from 'three';
 import { useGameStore } from '../state/gameStore';
+import { NPC_CONFIG_MAP } from './npcConfig';
 import { cameraYaw } from '../world/cameraState';
 import { joystickInput } from './joystickState';
 import { wouldCollide } from '../systems/collision';
 
 const SPEED = 5;
+const INTERACT_DIST = 3.2;
 const held: Record<string, boolean> = {};
+
+function findNearestNpc(px: number, pz: number): string | null {
+  const npcs = useGameStore.getState().npcs;
+  let nearest: string | null = null;
+  let best = INTERACT_DIST;
+  for (const npc of npcs) {
+    const d = Math.sqrt((px - npc.position[0]) ** 2 + (pz - npc.position[2]) ** 2);
+    if (d < best) { best = d; nearest = npc.id; }
+  }
+  return nearest;
+}
 
 export function PlayerMesh() {
   const meshRef = useRef<THREE.Mesh>(null);
@@ -19,11 +32,27 @@ export function PlayerMesh() {
 
   useEffect(() => {
     if (Platform.OS !== 'web') return;
+
     const onDown = (e: KeyboardEvent) => {
       const el = document.activeElement;
       if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) return;
-      held[e.key.toLowerCase()] = true;
+
+      const key = e.key.toLowerCase();
+      held[key] = true;
+
+      // E key: select the nearest NPC
+      if (key === 'e') {
+        const [px, , pz] = posRef.current;
+        const id = findNearestNpc(px, pz);
+        if (id) {
+          const store = useGameStore.getState();
+          store.setActiveConversation(id);
+          const cfg = NPC_CONFIG_MAP[id];
+          store.addLog(`You approach ${cfg?.name ?? id} the ${cfg?.role ?? ''}.`);
+        }
+      }
     };
+
     const onUp = (e: KeyboardEvent) => { held[e.key.toLowerCase()] = false; };
     window.addEventListener('keydown', onDown);
     window.addEventListener('keyup', onUp);
@@ -40,26 +69,22 @@ export function PlayerMesh() {
     let dz = 0;
 
     if (Platform.OS === 'web') {
-      // Camera-relative WASD / arrow keys
       if (held['w'] || held['arrowup'])    { dx -= Math.sin(yaw); dz -= Math.cos(yaw); }
       if (held['s'] || held['arrowdown'])  { dx += Math.sin(yaw); dz += Math.cos(yaw); }
       if (held['a'] || held['arrowleft'])  { dx -= Math.cos(yaw); dz += Math.sin(yaw); }
       if (held['d'] || held['arrowright']) { dx += Math.cos(yaw); dz -= Math.sin(yaw); }
     } else {
-      // Camera-relative joystick (jy < 0 = forward)
       const { x: jx, y: jy } = joystickInput.current;
       dx = jy * Math.sin(yaw) + jx * Math.cos(yaw);
       dz = jy * Math.cos(yaw) - jx * Math.sin(yaw);
     }
 
-    // Normalise diagonal speed
     const rawLen = Math.sqrt(dx * dx + dz * dz);
     if (rawLen > 0) {
       const move = Math.min(rawLen, 1) * SPEED * delta;
       dx = (dx / rawLen) * move;
       dz = (dz / rawLen) * move;
 
-      // Slide-collision: try full move, then axes separately
       let nx = x + dx;
       let nz = z + dz;
       if (wouldCollide(nx, nz)) {
@@ -67,13 +92,18 @@ export function PlayerMesh() {
         nz = wouldCollide(nx, z + dz) ? z : z + dz;
       }
 
-      const moved = nx !== x || nz !== z;
-      if (moved) {
+      if (nx !== x || nz !== z) {
         posRef.current = [nx, y, nz];
         setPlayerPosition([nx, y, nz]);
         facingRef.current = Math.atan2(nx - x, nz - z);
       }
     }
+
+    // Update nearby NPC (only writes to store when the value changes)
+    const [cx, , cz] = posRef.current;
+    const nearId = findNearestNpc(cx, cz);
+    const store = useGameStore.getState();
+    if (nearId !== store.nearbyNpcId) store.setNearbyNpc(nearId);
 
     if (meshRef.current) {
       const [nx, , nz] = posRef.current;

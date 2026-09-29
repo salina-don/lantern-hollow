@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { NPC_CONFIGS } from '../entities/npcConfig';
 
 export type Vec3 = [number, number, number];
 
@@ -34,6 +35,7 @@ interface GameStore {
   log: string[];
   apiKey: string;
   activeConversation: string | null;
+  nearbyNpcId: string | null;
 
   setPlayerPosition: (pos: Vec3) => void;
   moveNPC: (id: string, target: Vec3 | null) => void;
@@ -42,51 +44,36 @@ interface GameStore {
   addLog: (entry: string) => void;
   setApiKey: (key: string) => void;
   setActiveConversation: (npcId: string | null) => void;
+  setNearbyNpc: (id: string | null) => void;
   addMemory: (npcId: string, memory: Omit<Memory, 'timestamp'>) => void;
   setNPCActivity: (npcId: string, activity: string) => void;
   setNPCTalking: (npcId: string, talkingTo: string | null) => void;
 }
 
-const INITIAL_NPCS: NpcState[] = [
-  {
-    id: 'alice',
-    name: 'Alice',
-    position: [3, 0, 2],
-    targetPosition: null,
-    currentActivity: 'wandering',
-    memory: [],
-    isTalking: false,
-    talkingTo: null,
-  },
-  {
-    id: 'bob',
-    name: 'Bob',
-    position: [-4, 0, 1],
-    targetPosition: null,
-    currentActivity: 'wandering',
-    memory: [],
-    isTalking: false,
-    talkingTo: null,
-  },
-  {
-    id: 'miller',
-    name: 'Miller',
-    position: [7, 0, -2],
-    targetPosition: null,
-    currentActivity: 'working',
-    memory: [],
-    isTalking: false,
-    talkingTo: null,
-  },
-];
+const INITIAL_NPCS: NpcState[] = NPC_CONFIGS.map((c) => ({
+  id: c.id,
+  name: c.name,
+  position: [...c.startPosition] as Vec3,
+  targetPosition: null,
+  currentActivity: `at ${c.homeLocation}`,
+  memory: [],
+  isTalking: false,
+  talkingTo: null,
+}));
 
 export const useGameStore = create<GameStore>()((set) => ({
   playerPosition: [0, 0, 5],
   npcs: INITIAL_NPCS,
   messages: [],
-  log: ['Welcome to Lantern Hollow.', 'Commands: "go to inn", "talk to Alice", "tell Bob to go to market", "tell Alice that <rumor>"'],
+  log: [
+    'Welcome to Lantern Hollow.',
+    'WASD to move · Drag to rotate camera',
+    'Click an NPC or press E nearby to talk',
+    '"tell Alice to go to tavern" · "tell Bob that <rumour>"',
+  ],
   apiKey: '',
   activeConversation: null,
+  nearbyNpcId: null,
 
   setPlayerPosition: (pos) => set({ playerPosition: pos }),
 
@@ -119,11 +106,16 @@ export const useGameStore = create<GameStore>()((set) => ({
 
   setActiveConversation: (npcId) => set({ activeConversation: npcId }),
 
+  setNearbyNpc: (id) => set({ nearbyNpcId: id }),
+
   addMemory: (npcId, memory) =>
     set((state) => ({
       npcs: state.npcs.map((npc) =>
         npc.id === npcId
-          ? { ...npc, memory: [...npc.memory, { ...memory, timestamp: Date.now() }].slice(-20) }
+          ? {
+              ...npc,
+              memory: [...npc.memory, { ...memory, timestamp: Date.now() }].slice(-20),
+            }
           : npc,
       ),
     })),
