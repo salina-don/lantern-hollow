@@ -12,9 +12,9 @@ export function LogPanel() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Log</Text>
+      <Text style={styles.title}>› Activity</Text>
       <ScrollView ref={ref} style={styles.scroll} contentContainerStyle={styles.content}>
-        {log.slice(-30).map((entry, i) => (
+        {log.slice(-25).map((entry, i) => (
           <Text key={i} style={styles.entry}>
             {entry}
           </Text>
@@ -26,12 +26,20 @@ export function LogPanel() {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    borderRadius: 8,
-    padding: 8,
+    backgroundColor: 'rgba(16,10,4,0.88)',
+    borderRadius: 10,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(200,150,50,0.2)',
   },
-  title: { color: '#FFD700', fontWeight: 'bold', fontSize: 12, marginBottom: 3 },
-  scroll: { maxHeight: 120 },
+  title: {
+    color: '#8090A8',
+    fontWeight: 'bold',
+    fontSize: 11,
+    marginBottom: 5,
+    letterSpacing: 0.6,
+  },
+  scroll: { maxHeight: 100 },
   content: { paddingBottom: 2 },
-  entry: { color: '#ccc', fontSize: 11, marginVertical: 1 },
+  entry: { color: '#907060', fontSize: 11, marginVertical: 1, lineHeight: 16 },
 });

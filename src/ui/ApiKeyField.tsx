@@ -16,8 +16,10 @@ export function ApiKeyField() {
 
   if (!open) {
     return (
-      <TouchableOpacity style={styles.pill} onPress={() => setOpen(true)}>
-        <Text style={styles.pillText}>{apiKey ? '✦ LLM on' : '◇ Set API key'}</Text>
+      <TouchableOpacity style={[styles.pill, apiKey && styles.pillActive]} onPress={() => setOpen(true)}>
+        <Text style={[styles.pillText, apiKey && styles.pillTextActive]}>
+          {apiKey ? '✦ LLM on' : '◇ Set API key'}
+        </Text>
       </TouchableOpacity>
     );
   }
@@ -30,7 +32,7 @@ export function ApiKeyField() {
         value={draft}
         onChangeText={setDraft}
         placeholder="sk-ant-..."
-        placeholderTextColor="#555"
+        placeholderTextColor="#5A4A30"
         secureTextEntry
         autoFocus
         onSubmitEditing={save}
@@ -54,36 +56,49 @@ export function ApiKeyField() {
 
 const styles = StyleSheet.create({
   pill: {
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: 'rgba(16,10,4,0.88)',
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(200,150,50,0.25)',
+  },
+  pillActive: {
+    borderColor: 'rgba(240,192,64,0.55)',
+    backgroundColor: 'rgba(80,50,8,0.80)',
+  },
+  pillText: { color: '#60503A', fontSize: 11, fontWeight: 'bold', letterSpacing: 0.4 },
+  pillTextActive: { color: '#F0C040' },
+  box: {
+    backgroundColor: 'rgba(16,10,4,0.95)',
+    borderRadius: 10,
+    padding: 12,
+    minWidth: 268,
+    borderWidth: 1,
+    borderColor: 'rgba(200,150,50,0.3)',
+  },
+  label: { color: '#706050', fontSize: 11, marginBottom: 8 },
+  input: {
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    color: '#E0D0B0',
     borderRadius: 6,
     paddingHorizontal: 10,
-    paddingVertical: 5,
-  },
-  pillText: { color: '#888', fontSize: 11 },
-  box: {
-    backgroundColor: 'rgba(0,0,0,0.85)',
-    borderRadius: 8,
-    padding: 10,
-    minWidth: 260,
-  },
-  label: { color: '#888', fontSize: 11, marginBottom: 6 },
-  input: {
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    color: '#eee',
-    borderRadius: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 5,
+    paddingVertical: 7,
     fontSize: 12,
-    marginBottom: 8,
+    marginBottom: 9,
+    borderWidth: 1,
+    borderColor: 'rgba(200,150,50,0.22)',
   },
-  row: { flexDirection: 'row', gap: 6 },
+  row: { flexDirection: 'row', gap: 7 },
   btn: {
-    backgroundColor: '#4169E1',
-    borderRadius: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    backgroundColor: '#7A5A10',
+    borderRadius: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(255,200,80,0.25)',
   },
-  dangerBtn: { backgroundColor: '#8B0000' },
-  cancelBtn: { backgroundColor: '#444' },
-  btnText: { color: '#fff', fontSize: 12 },
+  dangerBtn: { backgroundColor: '#6A1810', borderColor: 'rgba(255,100,80,0.3)' },
+  cancelBtn: { backgroundColor: 'rgba(255,255,255,0.07)', borderColor: 'rgba(255,255,255,0.1)' },
+  btnText: { color: '#F0D080', fontSize: 12, fontWeight: 'bold' },
 });

@@ -38,15 +38,15 @@ const styles = StyleSheet.create({
   },
   topRow: {
     flexDirection: 'row',
-    padding: 10,
+    padding: 12,
     alignItems: 'flex-start',
   },
   spacer: { flex: 1 },
   bottomRow: {
     flexDirection: 'row',
-    padding: 10,
+    padding: 12,
     alignItems: 'flex-end',
-    gap: 10,
+    gap: 12,
   },
   leftCol: {
     justifyContent: 'flex-end',
@@ -54,5 +54,5 @@ const styles = StyleSheet.create({
   rightCol: {
     flex: 1,
   },
-  gap: { height: 6 },
+  gap: { height: 8 },
 });

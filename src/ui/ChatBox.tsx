@@ -35,10 +35,8 @@ export function ChatBox() {
       if (activeConversation) {
         const action = parseAction(text);
         if (action.type === 'converse') {
-          // Free-form chat: NPC replies in character (and may choose its own action)
           await playerSaysToNPC(activeConversation, action.text);
         } else {
-          // Structural command (goto / follow / stay / deliver_message)
           await executeAction(activeConversation, action);
         }
       } else {
@@ -53,8 +51,6 @@ export function ChatBox() {
 
   const activeConfig = activeConversation ? NPC_CONFIG_MAP[activeConversation] : null;
 
-  // When talking to an NPC: show that NPC's conversation thread.
-  // Otherwise: show the last 15 messages as a rolling chat log.
   const visibleMessages = activeConversation
     ? messages.filter(
         (m) => m.from === activeConversation || (m.from === 'player' && m.to === activeConversation),
@@ -64,19 +60,23 @@ export function ChatBox() {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, activeConfig && { borderBottomColor: activeConfig.color + '55' }]}>
         {activeConfig ? (
           <>
-            <View style={[styles.npcDot, { backgroundColor: activeConfig.color }]} />
-            <Text style={styles.headerName}>{activeConfig.name}</Text>
-            <Text style={styles.headerRole}> · {activeConfig.role}</Text>
+            <View style={[styles.npcAccent, { backgroundColor: activeConfig.color }]} />
+            <View style={styles.headerTextGroup}>
+              <Text style={[styles.headerName, { color: activeConfig.color }]}>{activeConfig.name}</Text>
+              <Text style={styles.headerRole}>{activeConfig.role}</Text>
+            </View>
             <View style={styles.flex1} />
-            <TouchableOpacity onPress={() => setActiveConversation(null)}>
-              <Text style={styles.closeBtn}>✕</Text>
+            <TouchableOpacity style={styles.closeBtn} onPress={() => setActiveConversation(null)}>
+              <Text style={styles.closeBtnText}>✕</Text>
             </TouchableOpacity>
           </>
         ) : (
-          <Text style={styles.headerLog}>Chat Log</Text>
+          <>
+            <Text style={styles.headerLog}>◈ Chat Log</Text>
+          </>
         )}
       </View>
 
@@ -89,7 +89,7 @@ export function ChatBox() {
         {visibleMessages.length === 0 && (
           <Text style={styles.emptyHint}>
             {activeConfig
-              ? `Give ${activeConfig.name} a command:\n"go to the well" · "follow me" · "stay"\n"tell Alice that the mill is open"`
+              ? `Give ${activeConfig.name} a command:\n"go to the well"  ·  "follow me"  ·  "stay"\n"tell Alice the mill is open"`
               : 'Press E near an NPC to start talking.'}
           </Text>
         )}
@@ -126,7 +126,7 @@ export function ChatBox() {
               ? `Command ${activeConfig.name}...`
               : 'go to inn  ·  talk to Alice'
           }
-          placeholderTextColor="#555"
+          placeholderTextColor="#5A4A30"
           onSubmitEditing={submit}
           returnKeyType="send"
           blurOnSubmit={false}
@@ -142,78 +142,94 @@ export function ChatBox() {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: 'rgba(0,0,0,0.82)',
-    borderRadius: 8,
-    padding: 8,
-    minWidth: 280,
+    backgroundColor: 'rgba(16,10,4,0.92)',
+    borderRadius: 10,
+    padding: 10,
+    minWidth: 300,
+    borderWidth: 1,
+    borderColor: 'rgba(200,150,50,0.28)',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     borderBottomWidth: 1,
-    borderBottomColor: '#333',
-    paddingBottom: 5,
-    marginBottom: 5,
+    borderBottomColor: 'rgba(200,150,50,0.2)',
+    paddingBottom: 7,
+    marginBottom: 7,
   },
-  npcDot: {
-    width: 9,
-    height: 9,
-    borderRadius: 5,
-    marginRight: 6,
+  npcAccent: {
+    width: 3,
+    height: 34,
+    borderRadius: 2,
+    marginRight: 9,
   },
-  headerName: { color: '#FFD700', fontWeight: 'bold', fontSize: 13 },
-  headerRole: { color: '#888', fontSize: 12 },
-  headerLog: { color: '#88CCFF', fontWeight: 'bold', fontSize: 12 },
+  headerTextGroup: { justifyContent: 'center' },
+  headerName: { fontWeight: 'bold', fontSize: 15 },
+  headerRole: { color: '#80705A', fontSize: 11 },
+  headerLog: { color: '#80A8D0', fontWeight: 'bold', fontSize: 13, letterSpacing: 0.5 },
   flex1: { flex: 1 },
-  closeBtn: { color: '#888', fontSize: 14, paddingHorizontal: 4 },
-  messages: { maxHeight: 150 },
-  messagesContent: { paddingBottom: 2, gap: 4 },
-  emptyHint: {
-    color: '#555',
-    fontSize: 11,
-    fontStyle: 'italic',
-    textAlign: 'center',
-    paddingVertical: 8,
-    lineHeight: 17,
-  },
-  bubble: {
-    maxWidth: '85%',
-    borderRadius: 8,
+  closeBtn: {
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderRadius: 5,
     paddingHorizontal: 8,
     paddingVertical: 4,
   },
+  closeBtnText: { color: '#706050', fontSize: 13 },
+  messages: { maxHeight: 220 },
+  messagesContent: { paddingBottom: 2, gap: 5 },
+  emptyHint: {
+    color: '#50402A',
+    fontSize: 11,
+    fontStyle: 'italic',
+    textAlign: 'center',
+    paddingVertical: 10,
+    lineHeight: 18,
+  },
+  bubble: {
+    maxWidth: '85%',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
   bubblePlayer: {
     alignSelf: 'flex-end',
-    backgroundColor: '#1E3A6E',
+    backgroundColor: '#1A3A70',
   },
   bubbleNpc: {
     alignSelf: 'flex-start',
-    backgroundColor: '#2a2a2a',
+    backgroundColor: '#2A2018',
+    borderWidth: 1,
+    borderColor: 'rgba(200,150,50,0.15)',
   },
   bubbleSender: {
     fontSize: 10,
     fontWeight: 'bold',
-    marginBottom: 1,
+    marginBottom: 2,
+    letterSpacing: 0.3,
   },
-  bubbleText: { color: '#ddd', fontSize: 12, lineHeight: 16 },
-  bubbleTextPlayer: { color: '#B8D4FF' },
-  inputRow: { flexDirection: 'row', marginTop: 6, gap: 6 },
+  bubbleText: { color: '#C8B890', fontSize: 13, lineHeight: 18 },
+  bubbleTextPlayer: { color: '#8ABCFF' },
+  inputRow: { flexDirection: 'row', marginTop: 8, gap: 7 },
   input: {
     flex: 1,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    color: '#eee',
-    borderRadius: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 5,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    color: '#E0D0B0',
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
     fontSize: 13,
+    borderWidth: 1,
+    borderColor: 'rgba(200,150,50,0.2)',
   },
   sendBtn: {
-    backgroundColor: '#4169E1',
-    borderRadius: 4,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    backgroundColor: '#7A5A10',
+    borderRadius: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,200,80,0.3)',
   },
-  sendBtnBusy: { backgroundColor: '#2a3a6a' },
-  sendText: { color: '#fff', fontSize: 13, fontWeight: 'bold' },
+  sendBtnBusy: { backgroundColor: '#3A2A08', borderColor: 'rgba(200,150,50,0.15)' },
+  sendText: { color: '#F0C040', fontSize: 13, fontWeight: 'bold' },
 });
