@@ -11,6 +11,7 @@ export function NPCMesh({ npcId }: Props) {
   const npc = useGameStore((s) => s.npcs.find((n) => n.id === npcId));
   const isSelected = useGameStore((s) => s.activeConversation === npcId);
   const isNearby = useGameStore((s) => s.nearbyNpcId === npcId);
+  const speechBubble = useGameStore((s) => s.npcs.find((n) => n.id === npcId)?.speechBubble ?? null);
   const setActiveConversation = useGameStore((s) => s.setActiveConversation);
   const addLog = useGameStore((s) => s.addLog);
 
@@ -60,6 +61,24 @@ export function NPCMesh({ npcId }: Props) {
           <sphereGeometry args={[0.14, 6, 6]} />
           <meshBasicMaterial color="#FFD700" />
         </mesh>
+      )}
+
+      {/* Speech bubble — fades after 5s via store timer */}
+      {speechBubble && (
+        <Billboard position={[0, 3.9, 0]}>
+          <Text
+            fontSize={0.28}
+            color="#FFFDE7"
+            anchorX="center"
+            anchorY="middle"
+            maxWidth={3.5}
+            textAlign="center"
+            outlineWidth={0.06}
+            outlineColor="#1a0800"
+          >
+            {`"${speechBubble}"`}
+          </Text>
+        </Billboard>
       )}
 
       {/* Floating label: always faces camera */}

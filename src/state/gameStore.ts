@@ -26,6 +26,8 @@ export interface NpcState {
   memory: Memory[];
   isTalking: boolean;
   talkingTo: string | null;
+  following: 'player' | null;
+  speechBubble: string | null;
 }
 
 interface GameStore {
@@ -48,6 +50,8 @@ interface GameStore {
   addMemory: (npcId: string, memory: Omit<Memory, 'timestamp'>) => void;
   setNPCActivity: (npcId: string, activity: string) => void;
   setNPCTalking: (npcId: string, talkingTo: string | null) => void;
+  setNPCFollowing: (npcId: string, following: 'player' | null) => void;
+  setSpeechBubble: (npcId: string, text: string | null) => void;
 }
 
 const INITIAL_NPCS: NpcState[] = NPC_CONFIGS.map((c) => ({
@@ -59,6 +63,8 @@ const INITIAL_NPCS: NpcState[] = NPC_CONFIGS.map((c) => ({
   memory: [],
   isTalking: false,
   talkingTo: null,
+  following: null,
+  speechBubble: null,
 }));
 
 export const useGameStore = create<GameStore>()((set) => ({
@@ -133,6 +139,20 @@ export const useGameStore = create<GameStore>()((set) => ({
         npc.id === npcId
           ? { ...npc, isTalking: talkingTo !== null, talkingTo }
           : npc,
+      ),
+    })),
+
+  setNPCFollowing: (npcId, following) =>
+    set((state) => ({
+      npcs: state.npcs.map((npc) =>
+        npc.id === npcId ? { ...npc, following } : npc,
+      ),
+    })),
+
+  setSpeechBubble: (npcId, text) =>
+    set((state) => ({
+      npcs: state.npcs.map((npc) =>
+        npc.id === npcId ? { ...npc, speechBubble: text } : npc,
       ),
     })),
 }));

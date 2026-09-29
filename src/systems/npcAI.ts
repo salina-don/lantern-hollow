@@ -15,6 +15,25 @@ function dist2D(a: Vec3, b: Vec3): number {
 export function tickNPCs(delta: number): void {
   const store = useGameStore.getState();
   for (const npc of store.npcs) {
+    // Following: update target to stay near the player
+    if (npc.following === 'player') {
+      const playerPos = store.playerPosition;
+      const d = dist2D(npc.position, playerPos);
+      if (d > 2.2) {
+        const angle = Math.atan2(npc.position[0] - playerPos[0], npc.position[2] - playerPos[2]);
+        const target: Vec3 = [
+          playerPos[0] + Math.sin(angle) * 1.5,
+          0,
+          playerPos[2] + Math.cos(angle) * 1.5,
+        ];
+        if (!npc.targetPosition || dist2D(npc.targetPosition, target) > 0.4) {
+          store.moveNPC(npc.id, target);
+        }
+      } else if (npc.targetPosition) {
+        store.moveNPC(npc.id, null);
+      }
+    }
+
     if (!npc.targetPosition) continue;
     const d = dist2D(npc.position, npc.targetPosition);
     if (d < ARRIVE_DIST) {
@@ -71,7 +90,7 @@ export function startNPCWander(): () => void {
       setTimeout(() => {
         const store = useGameStore.getState();
         const npc = store.npcs.find((n) => n.id === npcId);
-        if (npc && !npc.isTalking) {
+        if (npc && !npc.isTalking && !npc.following) {
           const loc = randomLocation();
           store.moveNPC(npcId, loc.position);
           store.setNPCActivity(npcId, `heading to ${loc.name}`);

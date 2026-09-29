@@ -42,10 +42,10 @@ export const LOCATIONS: Record<string, Location> = {
   },
 };
 
-export function findLocation(query: string): Location | null {
+export function findLocation(query: string): (Location & { key: string }) | null {
   const q = query.toLowerCase().trim();
-  for (const loc of Object.values(LOCATIONS)) {
-    if (loc.aliases.some((a) => q.includes(a))) return loc;
+  for (const [key, loc] of Object.entries(LOCATIONS)) {
+    if (loc.aliases.some((a) => q.includes(a))) return { ...loc, key };
   }
   return null;
 }
