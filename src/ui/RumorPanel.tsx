@@ -1,19 +1,32 @@
-import React from 'react';
-import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { useGameStore } from '../state/gameStore';
 import { NPC_CONFIGS } from '../entities/npcConfig';
 
 const TOTAL_NPCS = NPC_CONFIGS.length;
 
 export function RumorPanel() {
+  const [expanded, setExpanded] = useState(false);
   const rumors = useGameStore((s) => s.rumors);
   const entries = Object.values(rumors);
 
   if (entries.length === 0) return null;
 
+  if (!expanded) {
+    return (
+      <TouchableOpacity style={styles.pill} onPress={() => setExpanded(true)}>
+        <Text style={styles.pillText}>
+          ◈ {entries.length} whisper{entries.length !== 1 ? 's' : ''}
+        </Text>
+      </TouchableOpacity>
+    );
+  }
+
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>◈ Whispers</Text>
+      <TouchableOpacity onPress={() => setExpanded(false)}>
+        <Text style={styles.title}>◈ Whispers ▾</Text>
+      </TouchableOpacity>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
         {entries.map((rumor) => {
           const count = rumor.knownBy.length;
@@ -21,11 +34,13 @@ export function RumorPanel() {
           return (
             <View key={rumor.id} style={styles.row}>
               <Text style={styles.rumorText} numberOfLines={2}>
-                {`"${rumor.text}"`}
+                "{rumor.text}"
               </Text>
               <View style={styles.barRow}>
                 <View style={styles.barBg}>
-                  <View style={[styles.barFill, { width: `${Math.round(spread * 100)}%` as any }]} />
+                  <View
+                    style={[styles.barFill, { width: `${Math.round(spread * 100)}%` as any }]}
+                  />
                 </View>
                 <Text style={styles.count}>
                   {count}/{TOTAL_NPCS}
@@ -40,31 +55,40 @@ export function RumorPanel() {
 }
 
 const styles = StyleSheet.create({
+  pill: {
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    alignSelf: 'flex-start',
+  },
+  pillText: {
+    color: '#C89030',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
   container: {
-    backgroundColor: 'rgba(16,10,4,0.92)',
-    borderRadius: 10,
+    backgroundColor: 'rgba(8,5,2,0.72)',
+    borderRadius: 12,
     padding: 10,
     minWidth: 185,
     maxWidth: 220,
     maxHeight: 210,
-    borderWidth: 1,
-    borderColor: 'rgba(200,150,50,0.28)',
   },
   title: {
-    color: '#E8A830',
+    color: '#C89030',
     fontWeight: 'bold',
     fontSize: 13,
     marginBottom: 7,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(200,150,50,0.2)',
     paddingBottom: 5,
-    letterSpacing: 0.4,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.06)',
   },
-  scroll: { maxHeight: 165 },
+  scroll: { maxHeight: 160 },
   scrollContent: { gap: 8 },
   row: {},
   rumorText: {
-    color: '#B8A070',
+    color: '#A08860',
     fontSize: 11,
     fontStyle: 'italic',
     marginBottom: 4,
@@ -77,18 +101,18 @@ const styles = StyleSheet.create({
   },
   barBg: {
     flex: 1,
-    height: 5,
-    backgroundColor: 'rgba(255,200,80,0.1)',
-    borderRadius: 3,
+    height: 4,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderRadius: 2,
     overflow: 'hidden',
   },
   barFill: {
-    height: 5,
-    backgroundColor: '#C88020',
-    borderRadius: 3,
+    height: 4,
+    backgroundColor: '#C89030',
+    borderRadius: 2,
   },
   count: {
-    color: '#706050',
+    color: '#605040',
     fontSize: 10,
     minWidth: 24,
     textAlign: 'right',

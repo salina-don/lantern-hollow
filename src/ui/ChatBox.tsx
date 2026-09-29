@@ -60,12 +60,14 @@ export function ChatBox() {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={[styles.header, activeConfig && { borderBottomColor: activeConfig.color + '55' }]}>
+      <View style={styles.header}>
         {activeConfig ? (
           <>
-            <View style={[styles.npcAccent, { backgroundColor: activeConfig.color }]} />
-            <View style={styles.headerTextGroup}>
-              <Text style={[styles.headerName, { color: activeConfig.color }]}>{activeConfig.name}</Text>
+            <View style={[styles.npcStripe, { backgroundColor: activeConfig.color }]} />
+            <View style={styles.headerInfo}>
+              <Text style={[styles.headerName, { color: activeConfig.color }]}>
+                {activeConfig.name}
+              </Text>
               <Text style={styles.headerRole}>{activeConfig.role}</Text>
             </View>
             <View style={styles.flex1} />
@@ -74,13 +76,11 @@ export function ChatBox() {
             </TouchableOpacity>
           </>
         ) : (
-          <>
-            <Text style={styles.headerLog}>◈ Chat Log</Text>
-          </>
+          <Text style={styles.headerLog}>Chat</Text>
         )}
       </View>
 
-      {/* Message list */}
+      {/* Messages */}
       <ScrollView
         ref={scrollRef}
         style={styles.messages}
@@ -103,7 +103,7 @@ export function ChatBox() {
               style={[styles.bubble, isPlayer ? styles.bubblePlayer : styles.bubbleNpc]}
             >
               {!isPlayer && (
-                <Text style={[styles.bubbleSender, { color }]}>
+                <Text style={[styles.sender, { color }]}>
                   {npcCfg?.name ?? msg.from}
                 </Text>
               )}
@@ -115,7 +115,7 @@ export function ChatBox() {
         })}
       </ScrollView>
 
-      {/* Input row */}
+      {/* Input */}
       <View style={styles.inputRow}>
         <TextInput
           style={styles.input}
@@ -126,14 +126,18 @@ export function ChatBox() {
               ? `Command ${activeConfig.name}...`
               : 'go to inn  ·  talk to Alice'
           }
-          placeholderTextColor="#5A4A30"
+          placeholderTextColor="#504030"
           onSubmitEditing={submit}
           returnKeyType="send"
           blurOnSubmit={false}
           editable={!busy}
         />
-        <TouchableOpacity style={[styles.sendBtn, busy && styles.sendBtnBusy]} onPress={submit} disabled={busy}>
-          <Text style={styles.sendText}>{busy ? '…' : 'Send'}</Text>
+        <TouchableOpacity
+          style={[styles.sendBtn, busy && styles.sendBtnBusy]}
+          onPress={submit}
+          disabled={busy}
+        >
+          <Text style={styles.sendText}>{busy ? '…' : '›'}</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -142,43 +146,40 @@ export function ChatBox() {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: 'rgba(16,10,4,0.92)',
-    borderRadius: 10,
+    backgroundColor: 'rgba(8,5,2,0.72)',
+    borderRadius: 12,
     padding: 10,
     minWidth: 300,
-    borderWidth: 1,
-    borderColor: 'rgba(200,150,50,0.28)',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(200,150,50,0.2)',
     paddingBottom: 7,
-    marginBottom: 7,
+    marginBottom: 5,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.06)',
   },
-  npcAccent: {
+  npcStripe: {
     width: 3,
-    height: 34,
+    height: 30,
     borderRadius: 2,
     marginRight: 9,
   },
-  headerTextGroup: { justifyContent: 'center' },
+  headerInfo: { justifyContent: 'center' },
   headerName: { fontWeight: 'bold', fontSize: 15 },
-  headerRole: { color: '#80705A', fontSize: 11 },
-  headerLog: { color: '#80A8D0', fontWeight: 'bold', fontSize: 13, letterSpacing: 0.5 },
-  flex1: { flex: 1 },
-  closeBtn: {
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderRadius: 5,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+  headerRole: { color: '#706050', fontSize: 11 },
+  headerLog: {
+    color: '#908070',
+    fontWeight: 'bold',
+    fontSize: 12,
   },
-  closeBtnText: { color: '#706050', fontSize: 13 },
-  messages: { maxHeight: 220 },
+  flex1: { flex: 1 },
+  closeBtn: { paddingHorizontal: 8, paddingVertical: 4 },
+  closeBtnText: { color: '#605040', fontSize: 14 },
+  messages: { maxHeight: 200 },
   messagesContent: { paddingBottom: 2, gap: 5 },
   emptyHint: {
-    color: '#50402A',
+    color: '#483828',
     fontSize: 11,
     fontStyle: 'italic',
     textAlign: 'center',
@@ -193,43 +194,36 @@ const styles = StyleSheet.create({
   },
   bubblePlayer: {
     alignSelf: 'flex-end',
-    backgroundColor: '#1A3A70',
+    backgroundColor: 'rgba(30,60,120,0.75)',
   },
   bubbleNpc: {
     alignSelf: 'flex-start',
-    backgroundColor: '#2A2018',
-    borderWidth: 1,
-    borderColor: 'rgba(200,150,50,0.15)',
+    backgroundColor: 'rgba(255,255,255,0.06)',
   },
-  bubbleSender: {
+  sender: {
     fontSize: 10,
     fontWeight: 'bold',
     marginBottom: 2,
-    letterSpacing: 0.3,
   },
-  bubbleText: { color: '#C8B890', fontSize: 13, lineHeight: 18 },
+  bubbleText: { color: '#C0A880', fontSize: 13, lineHeight: 18 },
   bubbleTextPlayer: { color: '#8ABCFF' },
-  inputRow: { flexDirection: 'row', marginTop: 8, gap: 7 },
+  inputRow: { flexDirection: 'row', marginTop: 7, gap: 6 },
   input: {
     flex: 1,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    color: '#E0D0B0',
-    borderRadius: 6,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    color: '#D0C0A0',
+    borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 7,
     fontSize: 13,
-    borderWidth: 1,
-    borderColor: 'rgba(200,150,50,0.2)',
   },
   sendBtn: {
-    backgroundColor: '#7A5A10',
-    borderRadius: 6,
+    backgroundColor: 'rgba(200,150,50,0.25)',
+    borderRadius: 8,
     paddingHorizontal: 14,
     paddingVertical: 7,
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255,200,80,0.3)',
   },
-  sendBtnBusy: { backgroundColor: '#3A2A08', borderColor: 'rgba(200,150,50,0.15)' },
-  sendText: { color: '#F0C040', fontSize: 13, fontWeight: 'bold' },
+  sendBtnBusy: { opacity: 0.4 },
+  sendText: { color: '#F0C040', fontSize: 18, fontWeight: 'bold' },
 });

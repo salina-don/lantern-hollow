@@ -38,15 +38,15 @@ const styles = StyleSheet.create({
   },
   topRow: {
     flexDirection: 'row',
-    padding: 12,
+    padding: 16,
     alignItems: 'flex-start',
   },
   spacer: { flex: 1 },
   bottomRow: {
     flexDirection: 'row',
-    padding: 12,
+    padding: 16,
     alignItems: 'flex-end',
-    gap: 12,
+    gap: 14,
   },
   leftCol: {
     justifyContent: 'flex-end',

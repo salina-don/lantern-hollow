@@ -16,9 +16,12 @@ export function ApiKeyField() {
 
   if (!open) {
     return (
-      <TouchableOpacity style={[styles.pill, apiKey && styles.pillActive]} onPress={() => setOpen(true)}>
+      <TouchableOpacity
+        style={[styles.pill, apiKey && styles.pillActive]}
+        onPress={() => setOpen(true)}
+      >
         <Text style={[styles.pillText, apiKey && styles.pillTextActive]}>
-          {apiKey ? '✦ LLM on' : '◇ Set API key'}
+          {apiKey ? '✦ LLM' : '◇ API key'}
         </Text>
       </TouchableOpacity>
     );
@@ -26,13 +29,13 @@ export function ApiKeyField() {
 
   return (
     <View style={styles.box}>
-      <Text style={styles.label}>Anthropic API Key — memory only, never saved to disk</Text>
+      <Text style={styles.label}>Anthropic API Key — memory only</Text>
       <TextInput
         style={styles.input}
         value={draft}
         onChangeText={setDraft}
         placeholder="sk-ant-..."
-        placeholderTextColor="#5A4A30"
+        placeholderTextColor="#504030"
         secureTextEntry
         autoFocus
         onSubmitEditing={save}
@@ -42,12 +45,15 @@ export function ApiKeyField() {
           <Text style={styles.btnText}>Save</Text>
         </TouchableOpacity>
         {apiKey ? (
-          <TouchableOpacity style={[styles.btn, styles.dangerBtn]} onPress={() => { setApiKey(''); setOpen(false); }}>
+          <TouchableOpacity
+            style={[styles.btn, styles.dangerBtn]}
+            onPress={() => { setApiKey(''); setOpen(false); }}
+          >
             <Text style={styles.btnText}>Clear</Text>
           </TouchableOpacity>
         ) : null}
         <TouchableOpacity style={[styles.btn, styles.cancelBtn]} onPress={() => setOpen(false)}>
-          <Text style={styles.btnText}>Cancel</Text>
+          <Text style={[styles.btnText, styles.cancelText]}>Cancel</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -56,49 +62,41 @@ export function ApiKeyField() {
 
 const styles = StyleSheet.create({
   pill: {
-    backgroundColor: 'rgba(16,10,4,0.88)',
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderWidth: 1,
-    borderColor: 'rgba(200,150,50,0.25)',
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    borderRadius: 16,
+    paddingHorizontal: 11,
+    paddingVertical: 5,
   },
   pillActive: {
-    borderColor: 'rgba(240,192,64,0.55)',
-    backgroundColor: 'rgba(80,50,8,0.80)',
+    backgroundColor: 'rgba(180,120,20,0.35)',
   },
-  pillText: { color: '#60503A', fontSize: 11, fontWeight: 'bold', letterSpacing: 0.4 },
+  pillText: { color: '#605040', fontSize: 11, fontWeight: 'bold' },
   pillTextActive: { color: '#F0C040' },
   box: {
-    backgroundColor: 'rgba(16,10,4,0.95)',
-    borderRadius: 10,
+    backgroundColor: 'rgba(8,5,2,0.88)',
+    borderRadius: 12,
     padding: 12,
-    minWidth: 268,
-    borderWidth: 1,
-    borderColor: 'rgba(200,150,50,0.3)',
+    minWidth: 250,
   },
-  label: { color: '#706050', fontSize: 11, marginBottom: 8 },
+  label: { color: '#605040', fontSize: 11, marginBottom: 8 },
   input: {
     backgroundColor: 'rgba(255,255,255,0.05)',
-    color: '#E0D0B0',
+    color: '#D0C0A0',
     borderRadius: 6,
     paddingHorizontal: 10,
     paddingVertical: 7,
     fontSize: 12,
     marginBottom: 9,
-    borderWidth: 1,
-    borderColor: 'rgba(200,150,50,0.22)',
   },
   row: { flexDirection: 'row', gap: 7 },
   btn: {
-    backgroundColor: '#7A5A10',
+    backgroundColor: 'rgba(200,150,50,0.25)',
     borderRadius: 6,
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderWidth: 1,
-    borderColor: 'rgba(255,200,80,0.25)',
   },
-  dangerBtn: { backgroundColor: '#6A1810', borderColor: 'rgba(255,100,80,0.3)' },
-  cancelBtn: { backgroundColor: 'rgba(255,255,255,0.07)', borderColor: 'rgba(255,255,255,0.1)' },
-  btnText: { color: '#F0D080', fontSize: 12, fontWeight: 'bold' },
+  dangerBtn: { backgroundColor: 'rgba(180,40,30,0.4)' },
+  cancelBtn: { backgroundColor: 'rgba(255,255,255,0.06)' },
+  btnText: { color: '#E0C080', fontSize: 12, fontWeight: 'bold' },
+  cancelText: { color: '#807060' },
 });
