@@ -1,5 +1,8 @@
-import React from 'react';
+import React, { useRef } from 'react';
+import { useFrame } from '@react-three/fiber';
+import * as THREE from 'three';
 import { LOCATIONS } from './locations';
+import { gameTime } from './timeState';
 
 interface MatProps { color: string; flatShading?: boolean }
 function Mat({ color, flatShading = true }: MatProps) {
@@ -9,6 +12,29 @@ function Mat({ color, flatShading = true }: MatProps) {
 // ── Shared decoration primitives ──────────────────────────────────────────
 
 function Lantern({ pos }: { pos: [number, number, number] }) {
+  const lightRef = useRef<THREE.PointLight>(null);
+  const glowRef = useRef<THREE.Mesh>(null);
+
+  useFrame(() => {
+    const hour = gameTime.current;
+    const night = hour >= 20 || hour < 6;
+    const t =
+      hour >= 18 && hour < 20
+        ? (hour - 18) / 2
+        : hour >= 5 && hour < 7
+          ? 1 - (hour - 5) / 2
+          : night
+            ? 1
+            : 0;
+    if (lightRef.current) {
+      lightRef.current.intensity = 0.3 + t * 2.5;
+      lightRef.current.distance = 5 + t * 8;
+    }
+    if (glowRef.current) {
+      glowRef.current.scale.setScalar(1 + t * 0.8);
+    }
+  });
+
   return (
     <group position={pos}>
       <mesh position={[0, 1.2, 0]}>
@@ -19,11 +45,11 @@ function Lantern({ pos }: { pos: [number, number, number] }) {
         <boxGeometry args={[0.22, 0.3, 0.22]} />
         <Mat color="#4a3a2a" />
       </mesh>
-      <mesh position={[0, 2.5, 0]}>
+      <mesh ref={glowRef} position={[0, 2.5, 0]}>
         <sphereGeometry args={[0.1, 6, 6]} />
         <meshBasicMaterial color="#FFB830" />
       </mesh>
-      <pointLight position={[0, 2.5, 0]} color="#FFB830" intensity={0.6} distance={5} decay={2} />
+      <pointLight ref={lightRef} position={[0, 2.5, 0]} color="#FFB830" intensity={0.6} distance={5} decay={2} />
     </group>
   );
 }

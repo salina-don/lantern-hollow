@@ -2,16 +2,43 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useGameStore } from '../state/gameStore';
 import { NPC_CONFIG_MAP } from '../entities/npcConfig';
+import { GamePhase } from '../world/timeState';
+
+const PHASE_COLORS: Record<GamePhase, string> = {
+  dawn: '#FF9060',
+  morning: '#F0C040',
+  noon: '#FFEE80',
+  afternoon: '#F0C040',
+  dusk: '#E06030',
+  night: '#8090C0',
+};
+
+const PHASE_LABELS: Record<GamePhase, string> = {
+  dawn: 'Dawn',
+  morning: 'Morning',
+  noon: 'Noon',
+  afternoon: 'Afternoon',
+  dusk: 'Dusk',
+  night: 'Night',
+};
 
 export function HUD() {
   const pos = useGameStore((s) => s.playerPosition);
   const npcs = useGameStore((s) => s.npcs);
   const activeId = useGameStore((s) => s.activeConversation);
   const activeConfig = activeId ? NPC_CONFIG_MAP[activeId] : null;
+  const phase = useGameStore((s) => s.gamePhase);
+  const phaseColor = PHASE_COLORS[phase];
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Lantern Hollow</Text>
+      <View style={styles.timeRow}>
+        <View style={[styles.timeDot, { backgroundColor: phaseColor }]} />
+        <Text style={[styles.phaseText, { color: phaseColor }]}>
+          {PHASE_LABELS[phase]}
+        </Text>
+      </View>
       <Text style={styles.coord}>
         {pos[0].toFixed(1)}, {pos[2].toFixed(1)}
       </Text>
@@ -93,6 +120,22 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     fontSize: 20,
     marginBottom: 1,
+    ...shadow,
+  },
+  timeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 2,
+  },
+  timeDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  phaseText: {
+    fontSize: 12,
+    fontWeight: 'bold',
     ...shadow,
   },
   coord: {

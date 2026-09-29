@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { NPC_CONFIGS } from '../entities/npcConfig';
+import { GamePhase } from '../world/timeState';
 
 export type Vec3 = [number, number, number];
 
@@ -53,6 +54,7 @@ interface GameStore {
   activeConversation: string | null;
   nearbyNpcId: string | null;
   rumors: Record<string, RumorEntry>;
+  gamePhase: GamePhase;
 
   setPlayerPosition: (pos: Vec3) => void;
   moveNPC: (id: string, target: Vec3 | null) => void;
@@ -68,6 +70,7 @@ interface GameStore {
   setNPCFollowing: (npcId: string, following: 'player' | null) => void;
   setSpeechBubble: (npcId: string, text: string | null) => void;
   setPendingDelivery: (npcId: string, delivery: PendingDelivery | null) => void;
+  setGamePhase: (phase: GamePhase) => void;
   addRumor: (text: string, origin: string, initialKnower: string) => string;
   spreadRumor: (rumorId: string, toNpcId: string) => void;
 }
@@ -99,6 +102,7 @@ export const useGameStore = create<GameStore>()((set, get) => ({
   activeConversation: null,
   nearbyNpcId: null,
   rumors: {},
+  gamePhase: 'morning' as GamePhase,
 
   setPlayerPosition: (pos) => set({ playerPosition: pos }),
 
@@ -132,6 +136,8 @@ export const useGameStore = create<GameStore>()((set, get) => ({
   setActiveConversation: (npcId) => set({ activeConversation: npcId }),
 
   setNearbyNpc: (id) => set({ nearbyNpcId: id }),
+
+  setGamePhase: (phase) => set({ gamePhase: phase }),
 
   addMemory: (npcId, memory) =>
     set((state) => ({

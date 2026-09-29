@@ -1,11 +1,36 @@
 import { useGameStore, Vec3 } from '../state/gameStore';
 import { NPC_CONFIG_MAP } from '../entities/npcConfig';
-import { randomLocation } from '../world/locations';
+import { randomLocation, LOCATIONS } from '../world/locations';
+import { gameTime, isNight } from '../world/timeState';
 
 const NPC_SPEED = 2.5;
 const TALK_DIST = 2.2;
 const ARRIVE_DIST = 0.15;
 const WANDER_BASE_MS = 8000;
+
+const TAVERN_SPOTS: Vec3[] = [
+  [7, 0, 4],
+  [8.5, 0, 6],
+  [9, 0, 4.5],
+  [7, 0, 6.5],
+  [9.5, 0, 5],
+];
+
+const NIGHT_LINES: Record<string, string> = {
+  alice: 'Time to open up for the evening crowd!',
+  bob: 'A cold ale sounds about right.',
+  miller: 'Let me close up shop. Tavern time!',
+  elara: 'The stars call... but first, the tavern.',
+  finn: "Shift's over. Reporting to the tavern.",
+};
+
+const MORNING_LINES: Record<string, string> = {
+  alice: 'Another beautiful morning in the Hollow!',
+  bob: 'Back to the forge. Iron waits for no one.',
+  miller: 'Time to get the ovens going!',
+  elara: 'The morning dew holds many secrets...',
+  finn: 'Dawn watch begins. All clear.',
+};
 
 function dist2D(a: Vec3, b: Vec3): number {
   return Math.sqrt((a[0] - b[0]) ** 2 + (a[2] - b[2]) ** 2);
@@ -161,6 +186,39 @@ function checkInteractions(): void {
   }
 }
 
+export function triggerNightBehavior(): void {
+  const store = useGameStore.getState();
+  store.npcs.forEach((npc, i) => {
+    if (npc.following || npc.isTalking || npc.pendingDelivery) return;
+    const spot = TAVERN_SPOTS[i % TAVERN_SPOTS.length];
+    store.moveNPC(npc.id, spot);
+    store.setNPCActivity(npc.id, 'heading to the tavern');
+    setTimeout(() => {
+      const s = useGameStore.getState();
+      s.setSpeechBubble(npc.id, NIGHT_LINES[npc.id] ?? 'To the tavern!');
+      setTimeout(() => useGameStore.getState().setSpeechBubble(npc.id, null), 4000);
+    }, i * 1200);
+  });
+}
+
+export function triggerDawnBehavior(): void {
+  const store = useGameStore.getState();
+  store.npcs.forEach((npc, i) => {
+    if (npc.following || npc.isTalking || npc.pendingDelivery) return;
+    const config = NPC_CONFIG_MAP[npc.id];
+    if (!config) return;
+    const homeLoc = LOCATIONS[config.homeLocation];
+    if (!homeLoc) return;
+    store.moveNPC(npc.id, [...homeLoc.position] as Vec3);
+    store.setNPCActivity(npc.id, `returning to ${homeLoc.name}`);
+    setTimeout(() => {
+      const s = useGameStore.getState();
+      s.setSpeechBubble(npc.id, MORNING_LINES[npc.id] ?? 'Good morning!');
+      setTimeout(() => useGameStore.getState().setSpeechBubble(npc.id, null), 4000);
+    }, i * 1200);
+  });
+}
+
 // Starts autonomous NPC wandering; returns cleanup
 export function startNPCWander(): () => void {
   const timers = new Map<string, ReturnType<typeof setTimeout>>();
@@ -172,9 +230,16 @@ export function startNPCWander(): () => void {
         const store = useGameStore.getState();
         const npc = store.npcs.find((n) => n.id === npcId);
         if (npc && !npc.isTalking && !npc.following && !npc.pendingDelivery) {
-          const loc = randomLocation();
-          store.moveNPC(npcId, loc.position);
-          store.setNPCActivity(npcId, `heading to ${loc.name}`);
+          if (isNight(gameTime.current)) {
+            const spotIdx = store.npcs.findIndex((n) => n.id === npcId);
+            const spot = TAVERN_SPOTS[spotIdx % TAVERN_SPOTS.length];
+            store.moveNPC(npcId, spot);
+            store.setNPCActivity(npcId, 'relaxing at the tavern');
+          } else {
+            const loc = randomLocation();
+            store.moveNPC(npcId, loc.position);
+            store.setNPCActivity(npcId, `heading to ${loc.name}`);
+          }
         }
         scheduleWander(npcId, WANDER_BASE_MS + Math.random() * 5000);
       }, delay),
