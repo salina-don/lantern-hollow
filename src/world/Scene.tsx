@@ -18,13 +18,21 @@ function GameLoop() {
 function WorldContent() {
   return (
     <>
-      <ambientLight intensity={0.6} />
+      {/* Sky & atmosphere */}
+      <color attach="background" args={['#7EB5D6']} />
+      <fog attach="fog" args={['#9CC8E0', 30, 60]} />
+
+      {/* Lighting: hemisphere fill + warm directional sun */}
+      <hemisphereLight args={['#B0D0FF', '#4a6a2a', 0.4]} />
+      <ambientLight intensity={0.3} />
       <directionalLight
-        position={[12, 22, 10]}
-        intensity={1.1}
+        position={[15, 25, 12]}
+        intensity={1.3}
+        color="#FFF0D0"
         castShadow
         shadow-mapSize={[1024, 1024]}
       />
+
       <Terrain />
       <Buildings />
       <PlayerMesh />

@@ -10,6 +10,7 @@ import { wouldCollide } from '../systems/collision';
 
 const SPEED = 5;
 const INTERACT_DIST = 3.2;
+const BODY_COLOR = '#3355CC';
 const held: Record<string, boolean> = {};
 
 function findNearestNpc(px: number, pz: number): string | null {
@@ -24,7 +25,7 @@ function findNearestNpc(px: number, pz: number): string | null {
 }
 
 export function PlayerMesh() {
-  const meshRef = useRef<THREE.Mesh>(null);
+  const groupRef = useRef<THREE.Group>(null);
   const initPos = useGameStore.getState().playerPosition;
   const posRef = useRef<[number, number, number]>([...initPos] as [number, number, number]);
   const facingRef = useRef(0);
@@ -40,7 +41,6 @@ export function PlayerMesh() {
       const key = e.key.toLowerCase();
       held[key] = true;
 
-      // E key: select the nearest NPC
       if (key === 'e') {
         const [px, , pz] = posRef.current;
         const id = findNearestNpc(px, pz);
@@ -99,17 +99,16 @@ export function PlayerMesh() {
       }
     }
 
-    // Update nearby NPC (only writes to store when the value changes)
     const [cx, , cz] = posRef.current;
     const nearId = findNearestNpc(cx, cz);
     const store = useGameStore.getState();
     if (nearId !== store.nearbyNpcId) store.setNearbyNpc(nearId);
 
-    if (meshRef.current) {
+    if (groupRef.current) {
       const [nx, , nz] = posRef.current;
-      meshRef.current.position.set(nx, y + 0.75, nz);
-      meshRef.current.rotation.y = THREE.MathUtils.lerp(
-        meshRef.current.rotation.y,
+      groupRef.current.position.set(nx, y, nz);
+      groupRef.current.rotation.y = THREE.MathUtils.lerp(
+        groupRef.current.rotation.y,
         facingRef.current,
         0.2,
       );
@@ -117,9 +116,32 @@ export function PlayerMesh() {
   });
 
   return (
-    <mesh ref={meshRef} position={[initPos[0], initPos[1] + 0.75, initPos[2]]} castShadow>
-      <capsuleGeometry args={[0.3, 0.9, 4, 8]} />
-      <meshLambertMaterial color="#3355CC" />
-    </mesh>
+    <group ref={groupRef} position={[initPos[0], initPos[1], initPos[2]]}>
+      {/* Body / tunic */}
+      <mesh position={[0, 0.75, 0]} castShadow>
+        <capsuleGeometry args={[0.25, 0.7, 4, 8]} />
+        <meshLambertMaterial color={BODY_COLOR} />
+      </mesh>
+      {/* Head */}
+      <mesh position={[0, 1.55, 0]} castShadow>
+        <sphereGeometry args={[0.22, 8, 8]} />
+        <meshLambertMaterial color="#F5CBA7" />
+      </mesh>
+      {/* Hair */}
+      <mesh position={[0, 1.73, -0.02]} castShadow>
+        <sphereGeometry args={[0.23, 6, 4]} />
+        <meshLambertMaterial color="#5a3a1a" />
+      </mesh>
+      {/* Left arm */}
+      <mesh position={[-0.36, 1.0, 0]} rotation={[0, 0, 0.25]} castShadow>
+        <capsuleGeometry args={[0.07, 0.4, 3, 6]} />
+        <meshLambertMaterial color={BODY_COLOR} />
+      </mesh>
+      {/* Right arm */}
+      <mesh position={[0.36, 1.0, 0]} rotation={[0, 0, -0.25]} castShadow>
+        <capsuleGeometry args={[0.07, 0.4, 3, 6]} />
+        <meshLambertMaterial color={BODY_COLOR} />
+      </mesh>
+    </group>
   );
 }

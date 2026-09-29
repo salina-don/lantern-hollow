@@ -3,8 +3,48 @@ import { Text, Billboard } from '@react-three/drei';
 import { useGameStore } from '../state/gameStore';
 import { NPC_CONFIG_MAP } from './npcConfig';
 
-interface Props {
-  npcId: string;
+interface Props { npcId: string }
+
+function RoleAccessory({ npcId }: { npcId: string }) {
+  switch (npcId) {
+    case 'alice':
+      return (
+        <mesh position={[0, 1.93, -0.1]} castShadow>
+          <sphereGeometry args={[0.13, 6, 6]} />
+          <meshLambertMaterial color="#8B4513" />
+        </mesh>
+      );
+    case 'bob':
+      return (
+        <mesh position={[0, 1.88, 0.02]} rotation={[0.1, 0, 0]} castShadow>
+          <cylinderGeometry args={[0.25, 0.27, 0.08, 8]} />
+          <meshLambertMaterial color="#3a2a18" flatShading />
+        </mesh>
+      );
+    case 'miller':
+      return (
+        <mesh position={[0, 2.0, 0]} castShadow>
+          <cylinderGeometry args={[0.16, 0.19, 0.32, 6]} />
+          <meshLambertMaterial color="#F0E8D0" flatShading />
+        </mesh>
+      );
+    case 'elara':
+      return (
+        <mesh position={[0, 2.08, 0]} castShadow>
+          <coneGeometry args={[0.2, 0.5, 6]} />
+          <meshLambertMaterial color="#6a3a8a" flatShading />
+        </mesh>
+      );
+    case 'finn':
+      return (
+        <mesh position={[0, 1.88, 0]} castShadow>
+          <sphereGeometry args={[0.27, 6, 4, 0, Math.PI * 2, 0, Math.PI * 0.55]} />
+          <meshLambertMaterial color="#6a7080" flatShading />
+        </mesh>
+      );
+    default:
+      return null;
+  }
 }
 
 export function NPCMesh({ npcId }: Props) {
@@ -36,7 +76,7 @@ export function NPCMesh({ npcId }: Props) {
 
   return (
     <group position={[x, y, z]} rotation={[0, facingY, 0]}>
-      {/* Ground ring: gold when selected, white when nearby, hidden otherwise */}
+      {/* Selection / proximity ring */}
       {(isSelected || isNearby) && (
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]}>
           <ringGeometry args={[0.52, 0.72, 24]} />
@@ -48,9 +88,9 @@ export function NPCMesh({ npcId }: Props) {
         </mesh>
       )}
 
-      {/* Body */}
+      {/* Body / tunic */}
       <mesh position={[0, 0.75, 0]} castShadow onClick={handleClick}>
-        <capsuleGeometry args={[0.3, 0.9, 4, 8]} />
+        <capsuleGeometry args={[0.25, 0.7, 4, 8]} />
         <meshLambertMaterial
           color={config.color}
           emissive={config.color}
@@ -59,20 +99,43 @@ export function NPCMesh({ npcId }: Props) {
       </mesh>
 
       {/* Head */}
-      <mesh position={[0, 1.72, 0]} castShadow onClick={handleClick}>
-        <sphereGeometry args={[0.27, 8, 8]} />
+      <mesh position={[0, 1.55, 0]} castShadow onClick={handleClick}>
+        <sphereGeometry args={[0.22, 8, 8]} />
         <meshLambertMaterial color="#F5CBA7" />
       </mesh>
 
-      {/* Speech bubble indicator when talking to another NPC */}
+      {/* Left arm */}
+      <mesh position={[-0.36, 1.0, 0]} rotation={[0, 0, 0.25]} castShadow onClick={handleClick}>
+        <capsuleGeometry args={[0.07, 0.4, 3, 6]} />
+        <meshLambertMaterial
+          color={config.color}
+          emissive={config.color}
+          emissiveIntensity={isSelected ? 0.2 : 0}
+        />
+      </mesh>
+
+      {/* Right arm */}
+      <mesh position={[0.36, 1.0, 0]} rotation={[0, 0, -0.25]} castShadow onClick={handleClick}>
+        <capsuleGeometry args={[0.07, 0.4, 3, 6]} />
+        <meshLambertMaterial
+          color={config.color}
+          emissive={config.color}
+          emissiveIntensity={isSelected ? 0.2 : 0}
+        />
+      </mesh>
+
+      {/* Role-specific hat / accessory */}
+      <RoleAccessory npcId={npcId} />
+
+      {/* Talking indicator */}
       {npc.isTalking && (
         <mesh position={[0.4, 2.1, 0]}>
-          <sphereGeometry args={[0.14, 6, 6]} />
+          <sphereGeometry args={[0.12, 6, 6]} />
           <meshBasicMaterial color="#FFD700" />
         </mesh>
       )}
 
-      {/* Speech bubble — fades after 5s via store timer */}
+      {/* Speech bubble */}
       {speechBubble && (
         <Billboard position={[0, 3.9, 0]}>
           <Text
@@ -90,9 +153,8 @@ export function NPCMesh({ npcId }: Props) {
         </Billboard>
       )}
 
-      {/* Floating label: always faces camera */}
+      {/* Floating label */}
       <Billboard position={[0, 2.65, 0]}>
-        {/* Name */}
         <Text
           fontSize={0.38}
           color="#ffffff"
@@ -104,7 +166,6 @@ export function NPCMesh({ npcId }: Props) {
         >
           {config.name}
         </Text>
-        {/* Role */}
         <Text
           fontSize={0.24}
           color="#dddddd"
@@ -116,7 +177,6 @@ export function NPCMesh({ npcId }: Props) {
         >
           {config.role}
         </Text>
-        {/* E-to-interact prompt */}
         {isNearby && !isSelected && (
           <Text
             fontSize={0.22}
