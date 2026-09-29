@@ -10,6 +10,7 @@ import {
 import { useGameStore } from '../state/gameStore';
 import { NPC_CONFIG_MAP } from '../entities/npcConfig';
 import { parseAction, executeAction, parseCommand } from '../systems/commandParser';
+import { playerSaysToNPC } from '../systems/conversationSystem';
 
 export function ChatBox() {
   const [input, setInput] = useState('');
@@ -33,7 +34,13 @@ export function ChatBox() {
     try {
       if (activeConversation) {
         const action = parseAction(text);
-        await executeAction(activeConversation, action);
+        if (action.type === 'converse') {
+          // Free-form chat: NPC replies in character (and may choose its own action)
+          await playerSaysToNPC(activeConversation, action.text);
+        } else {
+          // Structural command (goto / follow / stay / deliver_message)
+          await executeAction(activeConversation, action);
+        }
       } else {
         addLog(`> ${text}`);
         const result = await parseCommand(text);

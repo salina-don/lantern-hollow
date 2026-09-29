@@ -1,7 +1,6 @@
 import { useGameStore, Vec3 } from '../state/gameStore';
 import { findLocation } from '../world/locations';
 import { NPC_CONFIGS, NPC_CONFIG_MAP } from '../entities/npcConfig';
-import { playerSaysToNPC } from './conversationSystem';
 
 // ── Typed NPC command ─────────────────────────────────────────────────────────
 
@@ -155,13 +154,11 @@ export async function executeAction(npcId: string, action: ParsedAction): Promis
   const config = NPC_CONFIG_MAP[npcId];
   if (!npc || !config) return '';
 
-  store.addMessage({ from: 'player', to: npcId, text: actionSummary(action) });
+  // 'converse' is handled by the caller (conversationSystem / ChatBox) to avoid a
+  // circular dependency. executeAction only handles structural commands.
+  if (action.type === 'converse') return '';
 
-  if (action.type === 'converse') {
-    const response = await playerSaysToNPC(npcId, action.text);
-    if (response) scheduleSpeechBubble(npcId, response);
-    return response;
-  }
+  store.addMessage({ from: 'player', to: npcId, text: actionSummary(action) });
 
   // Structural command
   switch (action.type) {

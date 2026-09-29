@@ -17,14 +17,14 @@ export function ApiKeyField() {
   if (!open) {
     return (
       <TouchableOpacity style={styles.pill} onPress={() => setOpen(true)}>
-        <Text style={styles.pillText}>{apiKey ? '[LLM: on]' : '[Set API Key]'}</Text>
+        <Text style={styles.pillText}>{apiKey ? '✦ LLM on' : '◇ Set API key'}</Text>
       </TouchableOpacity>
     );
   }
 
   return (
     <View style={styles.box}>
-      <Text style={styles.label}>Anthropic API Key (memory only, never saved)</Text>
+      <Text style={styles.label}>Anthropic API Key — memory only, never saved to disk</Text>
       <TextInput
         style={styles.input}
         value={draft}
