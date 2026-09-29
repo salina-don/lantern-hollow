@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { Text, Billboard } from '@react-three/drei';
 import { useGameStore } from '../state/gameStore';
 import { NPC_CONFIG_MAP } from './npcConfig';
+import { startConversation } from '../systems/questSystem';
 
 const SKIN = '#F5CBA7';
 
@@ -64,8 +65,6 @@ export function NPCMesh({ npcId }: Props) {
   const isSelected = useGameStore((s) => s.activeConversation === npcId);
   const isNearby = useGameStore((s) => s.nearbyNpcId === npcId);
   const speechBubble = useGameStore((s) => s.npcs.find((n) => n.id === npcId)?.speechBubble ?? null);
-  const setActiveConversation = useGameStore((s) => s.setActiveConversation);
-  const addLog = useGameStore((s) => s.addLog);
 
   const talkingToPos = useGameStore((s) => {
     const me = s.npcs.find((n) => n.id === npcId);
@@ -107,10 +106,7 @@ export function NPCMesh({ npcId }: Props) {
     ? Math.atan2(talkingToPos[0] - x, talkingToPos[2] - z)
     : 0;
 
-  const handleClick = () => {
-    setActiveConversation(npcId);
-    addLog(`You approach ${config.name} the ${config.role}.`);
-  };
+  const handleClick = () => startConversation(npcId);
 
   const color = config.color;
   const legColor = darkenHex(color);

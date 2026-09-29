@@ -55,6 +55,8 @@ interface GameStore {
   nearbyNpcId: string | null;
   rumors: Record<string, RumorEntry>;
   gamePhase: GamePhase;
+  quests: Record<string, number>;
+  festivalStarted: boolean;
 
   setPlayerPosition: (pos: Vec3) => void;
   moveNPC: (id: string, target: Vec3 | null) => void;
@@ -71,6 +73,8 @@ interface GameStore {
   setSpeechBubble: (npcId: string, text: string | null) => void;
   setPendingDelivery: (npcId: string, delivery: PendingDelivery | null) => void;
   setGamePhase: (phase: GamePhase) => void;
+  advanceQuest: (questId: string) => void;
+  setFestivalStarted: () => void;
   addRumor: (text: string, origin: string, initialKnower: string) => string;
   spreadRumor: (rumorId: string, toNpcId: string) => void;
 }
@@ -103,6 +107,8 @@ export const useGameStore = create<GameStore>()((set, get) => ({
   nearbyNpcId: null,
   rumors: {},
   gamePhase: 'morning' as GamePhase,
+  quests: {} as Record<string, number>,
+  festivalStarted: false,
 
   setPlayerPosition: (pos) => set({ playerPosition: pos }),
 
@@ -138,6 +144,16 @@ export const useGameStore = create<GameStore>()((set, get) => ({
   setNearbyNpc: (id) => set({ nearbyNpcId: id }),
 
   setGamePhase: (phase) => set({ gamePhase: phase }),
+
+  advanceQuest: (questId) =>
+    set((state) => ({
+      quests: {
+        ...state.quests,
+        [questId]: (state.quests[questId] ?? 0) + 1,
+      },
+    })),
+
+  setFestivalStarted: () => set({ festivalStarted: true }),
 
   addMemory: (npcId, memory) =>
     set((state) => ({

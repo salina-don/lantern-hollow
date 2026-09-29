@@ -3,8 +3,8 @@ import { useFrame } from '@react-three/fiber';
 import { Platform } from 'react-native';
 import * as THREE from 'three';
 import { useGameStore } from '../state/gameStore';
-import { NPC_CONFIG_MAP } from './npcConfig';
 import { cameraYaw } from '../world/cameraState';
+import { startConversation } from '../systems/questSystem';
 import { joystickInput } from './joystickState';
 import { wouldCollide } from '../systems/collision';
 
@@ -52,12 +52,7 @@ export function PlayerMesh() {
       if (key === 'e') {
         const [px, , pz] = posRef.current;
         const id = findNearestNpc(px, pz);
-        if (id) {
-          const store = useGameStore.getState();
-          store.setActiveConversation(id);
-          const cfg = NPC_CONFIG_MAP[id];
-          store.addLog(`You approach ${cfg?.name ?? id} the ${cfg?.role ?? ''}.`);
-        }
+        if (id) startConversation(id);
       }
     };
 

@@ -4,6 +4,7 @@ import { HUD } from './HUD';
 import { ChatBox } from './ChatBox';
 import { LogPanel } from './LogPanel';
 import { RumorPanel } from './RumorPanel';
+import { QuestPanel } from './QuestPanel';
 import { ApiKeyField } from './ApiKeyField';
 import { Joystick } from './Joystick';
 
@@ -17,6 +18,8 @@ export function GameUI() {
       </View>
       <View style={styles.bottomRow} pointerEvents="box-none">
         <View style={styles.leftCol} pointerEvents="box-none">
+          <QuestPanel />
+          <View style={styles.gap} />
           <RumorPanel />
           <View style={styles.gap} />
           <Joystick />
