@@ -1,5 +1,29 @@
 This is an Expo/React Native mobile application. Prioritize mobile-first patterns, performance, and cross-platform compatibility.
 
+## How to Play
+
+Lantern Hollow is a 3D village shopkeeper survival game. You run the village shop and must serve all NPCs before nightfall each day.
+
+### Controls
+- **WASD** — Move your character
+- **E** — Interact (talk to NPCs, open shop popup, sleep in bed, buy food)
+- **Click doors** — Open/close building doors
+- **Joystick** (mobile) — On-screen joystick for movement
+
+### Gameplay Loop
+1. **Serve customers** — NPCs come to your shop one at a time asking for a specific item. Press E near them to open the item popup, then give them the correct item to earn gold.
+2. **Buy food** — Visit the food stall and press E to buy meals. Your hunger drains fast — if it hits zero you start losing health.
+3. **Sleep at home** — Go to your house, open the door, walk to the bed, and press E to sleep. Sleeping restores energy and skips to the next morning. If energy hits zero you lose health.
+4. **Survive the day** — You must serve every NPC before night falls. If anyone is left unserved, they leave angry and it's game over.
+
+### Day/Night Cycle
+- Each day lasts about 6 minutes real time (~3.75 min of daytime)
+- NPCs wander the village during the day and go home at night
+- At dawn, NPCs come back out and a new day begins
+
+### Win Condition
+Complete all NPC quests to trigger the Village Festival celebration.
+
 ## Expo has changed — do not trust your training data
 
 Expo ships breaking changes every SDK release. APIs you remember are likely renamed, moved, or removed. Before writing any code that touches an Expo, EAS, or React Native API:
