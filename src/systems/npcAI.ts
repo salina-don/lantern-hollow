@@ -36,6 +36,33 @@ const shopVisitors = new Map<string, 'visiting' | 'waiting'>();
 const shopSpotAssignment = new Map<string, number>();
 const lastBubbleRefresh = new Map<string, number>();
 const servedToday = new Set<string>();
+let nextVisitTimer: ReturnType<typeof setTimeout> | null = null;
+
+function sendNextNPC(): void {
+  if (nextVisitTimer !== null) clearTimeout(nextVisitTimer);
+  nextVisitTimer = setTimeout(() => {
+    nextVisitTimer = null;
+    const s = useGameStore.getState();
+    if (s.isSleeping || s.gameOver || isNight(gameTime.current)) return;
+    if (shopVisitors.size > 0) return;
+    const candidates = s.npcs.filter((n) => {
+      if (shopVisitors.has(n.id) || n.isTalking || n.following || n.pendingDelivery) return false;
+      if (servedToday.has(n.id)) return false;
+      const quest = QUEST_BY_NPC[n.id];
+      if (quest && (s.quests[quest.id] ?? 0) >= 1) return false;
+      return true;
+    });
+    if (candidates.length > 0) {
+      const npc = candidates[Math.floor(Math.random() * candidates.length)];
+      shopSpotAssignment.set(npc.id, 0);
+      shopVisitors.set(npc.id, 'visiting');
+      moveNPCTo(npc.id, SHOP_SPOTS[0]);
+      const cfg = NPC_CONFIG_MAP[npc.id];
+      s.setNPCActivity(npc.id, 'heading to the shop');
+      s.addLog(`${cfg?.name ?? npc.id} is coming to your shop!`);
+    }
+  }, 5000);
+}
 
 function nextFreeSpot(): number {
   const taken = new Set(shopSpotAssignment.values());
@@ -74,25 +101,9 @@ export function markNPCServed(npcId: string): void {
     useGameStore.getState().setNPCEmotion(npcId, 'neutral');
   }, 4000);
 
-  advanceQueue();
+  sendNextNPC();
 }
 
-function advanceQueue(): void {
-  const entries = Array.from(shopSpotAssignment.entries()).sort((a, b) => a[1] - b[1]);
-  shopSpotAssignment.clear();
-  const store = useGameStore.getState();
-  entries.forEach(([id], newIdx) => {
-    shopSpotAssignment.set(id, newIdx);
-    moveNPCTo(id, SHOP_SPOTS[newIdx]);
-  });
-  if (entries.length > 0) {
-    const frontId = entries[0][0];
-    if (shopVisitors.get(frontId) === 'waiting') {
-      showNpcRequest(frontId);
-      lastBubbleRefresh.set(frontId, Date.now());
-    }
-  }
-}
 
 const TAVERN_SPOTS: Vec3[] = [
   [7, 0, 4.5],
@@ -483,6 +494,7 @@ export function triggerDawnBehavior(): void {
       }
     }, 1000 + i * 1200);
   });
+  sendNextNPC();
 }
 
 export function startNPCWander(): () => void {
@@ -524,45 +536,12 @@ export function startNPCWander(): () => void {
 
   const interactionInterval = setInterval(checkInteractions, 4000);
 
-  let shopTimer: ReturnType<typeof setTimeout> | null = null;
-  function scheduleShopVisit() {
-    if (shopTimer !== null) return;
-    shopTimer = setTimeout(() => {
-      shopTimer = null;
-      const s = useGameStore.getState();
-      if (s.isSleeping || s.gameOver || isNight(gameTime.current)) {
-        scheduleShopVisit();
-        return;
-      }
-      if (shopVisitors.size > 0) {
-        scheduleShopVisit();
-        return;
-      }
-      const candidates = s.npcs.filter((n) => {
-        if (shopVisitors.has(n.id) || n.isTalking || n.following || n.pendingDelivery) return false;
-        if (servedToday.has(n.id)) return false;
-        const quest = QUEST_BY_NPC[n.id];
-        if (quest && (s.quests[quest.id] ?? 0) >= 1) return false;
-        return true;
-      });
-      if (candidates.length > 0) {
-        const npc = candidates[Math.floor(Math.random() * candidates.length)];
-        shopSpotAssignment.set(npc.id, 0);
-        shopVisitors.set(npc.id, 'visiting');
-        moveNPCTo(npc.id, SHOP_SPOTS[0]);
-        const cfg = NPC_CONFIG_MAP[npc.id];
-        s.setNPCActivity(npc.id, 'heading to the shop');
-        s.addLog(`${cfg?.name ?? npc.id} is coming to your shop!`);
-      }
-      scheduleShopVisit();
-    }, 5000);
-  }
-  scheduleShopVisit();
+  sendNextNPC();
 
   return () => {
     timers.forEach((t) => clearTimeout(t));
     timers.clear();
     clearInterval(interactionInterval);
-    if (shopTimer !== null) clearTimeout(shopTimer);
+    if (nextVisitTimer !== null) { clearTimeout(nextVisitTimer); nextVisitTimer = null; }
   };
 }
