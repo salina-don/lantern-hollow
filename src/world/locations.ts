@@ -8,34 +8,44 @@ export const LOCATIONS: Record<string, Location> = {
   town_square: {
     name: 'Town Square',
     position: [0, 0, 0],
-    aliases: ['town square', 'square', 'center'],
+    aliases: ['town square', 'square', 'center', 'plaza'],
   },
-  inn: {
-    name: 'The Lantern Inn',
+  tavern: {
+    name: 'The Lantern Tavern',
     position: [8, 0, 5],
-    aliases: ['inn', 'lantern inn', 'tavern'],
+    aliases: ['tavern', 'inn', 'lantern', 'pub', 'bar'],
   },
-  market: {
-    name: 'Market',
+  bakery: {
+    name: 'Bakery',
     position: [-8, 0, 5],
-    aliases: ['market', 'marketplace', 'stalls'],
+    aliases: ['bakery', 'baker', 'bread', 'bake'],
   },
-  blacksmith: {
-    name: 'Blacksmith',
+  forge: {
+    name: 'Forge',
     position: [8, 0, -6],
-    aliases: ['blacksmith', 'forge', 'smith'],
+    aliases: ['forge', 'blacksmith', 'smith', 'anvil', 'smithy'],
   },
   well: {
     name: 'Village Well',
     position: [-3, 0, -4],
-    aliases: ['well', 'village well', 'water'],
+    aliases: ['well', 'water', 'village well'],
+  },
+  orchard: {
+    name: 'Orchard',
+    position: [-8, 0, -6],
+    aliases: ['orchard', 'trees', 'garden', 'grove'],
+  },
+  gate: {
+    name: 'Village Gate',
+    position: [0, 0, -12],
+    aliases: ['gate', 'entrance', 'exit', 'door'],
   },
 };
 
-export function findLocation(query: string): Location | null {
+export function findLocation(query: string): (Location & { key: string }) | null {
   const q = query.toLowerCase().trim();
-  for (const loc of Object.values(LOCATIONS)) {
-    if (loc.aliases.some((a) => q.includes(a))) return loc;
+  for (const [key, loc] of Object.entries(LOCATIONS)) {
+    if (loc.aliases.some((a) => q.includes(a))) return { ...loc, key };
   }
   return null;
 }

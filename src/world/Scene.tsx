@@ -1,13 +1,18 @@
 import React, { useEffect } from 'react';
-import { View, StyleSheet } from 'react-native';
-import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls } from '@react-three/drei';
+import { useFrame } from '@react-three/fiber';
+import { GameCanvas } from './GameCanvas';
 import { Terrain } from './Terrain';
 import { Buildings } from './Buildings';
 import { PlayerMesh } from '../entities/Player';
 import { NPCMesh } from '../entities/NPCMesh';
-import { useGameStore } from '../state/gameStore';
+import { ThirdPersonCamera } from './ThirdPersonCamera';
+import { DayNightLighting } from './DayNightLighting';
+import { DebugOverlay } from './DebugOverlay';
+import { StatsLoop } from './StatsLoop';
 import { tickNPCs, startNPCWander } from '../systems/npcAI';
+import { useGameStore } from '../state/gameStore';
+
+const INITIAL_NPC_IDS = ['alice', 'bob', 'miller', 'elara', 'finn'];
 
 function GameLoop() {
   useFrame((_, delta) => tickNPCs(delta));
@@ -15,52 +20,40 @@ function GameLoop() {
 }
 
 function WorldContent() {
-  const npcIds = useGameStore((s) => s.npcs.map((n) => n.id));
   return (
     <>
-      <ambientLight intensity={0.55} />
-      <directionalLight
-        position={[12, 20, 10]}
-        intensity={1.1}
-        castShadow
-        shadow-mapSize={[1024, 1024]}
-      />
+      <DayNightLighting />
       <Terrain />
       <Buildings />
       <PlayerMesh />
-      {npcIds.map((id) => (
+      {INITIAL_NPC_IDS.map((id) => (
         <NPCMesh key={id} npcId={id} />
       ))}
-      <OrbitControls
-        enablePan={false}
-        maxPolarAngle={Math.PI / 2.4}
-        minDistance={6}
-        maxDistance={35}
-      />
+      <DebugOverlay />
+      <ThirdPersonCamera />
       <GameLoop />
+      <StatsLoop />
     </>
   );
 }
 
 export function Scene() {
-  useEffect(() => startNPCWander(), []);
+  useEffect(() => {
+    const cleanup = startNPCWander();
+    setTimeout(() => {
+      useGameStore.getState().setQuestPopup({
+        title: 'Lantern Hollow',
+        text: 'You are the village shopkeeper. Villagers will come to your shop!',
+        hint: 'Serve customers, buy food at the stall, sleep at home.',
+      });
+      setTimeout(() => useGameStore.getState().setQuestPopup(null), 6000);
+    }, 1500);
+    return cleanup;
+  }, []);
 
   return (
-    <View style={styles.container}>
-      <Canvas
-        camera={{ position: [0, 16, 16], fov: 50 }}
-        shadows
-        style={styles.canvas as object}
-      >
-        <WorldContent />
-      </Canvas>
-    </View>
+    <GameCanvas camera={{ position: [0, 5.5, 13], fov: 55 }} shadows>
+      <WorldContent />
+    </GameCanvas>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  // Cast to object so React Native StyleSheet doesn't reject string values
-  // that are valid CSS but not React Native ViewStyle (width/height %)
-  canvas: { width: '100%', height: '100%' },
-});

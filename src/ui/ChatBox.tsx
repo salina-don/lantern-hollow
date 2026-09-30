@@ -8,12 +8,14 @@ import {
   StyleSheet,
 } from 'react-native';
 import { useGameStore } from '../state/gameStore';
-import { parseCommand } from '../systems/commandParser';
+import { NPC_CONFIG_MAP } from '../entities/npcConfig';
+import { parseAction, executeAction, parseCommand } from '../systems/commandParser';
+import { playerSaysToNPC } from '../systems/conversationSystem';
 
 export function ChatBox() {
   const [input, setInput] = useState('');
+  const [busy, setBusy] = useState(false);
   const messages = useGameStore((s) => s.messages);
-  const npcs = useGameStore((s) => s.npcs);
   const activeConversation = useGameStore((s) => s.activeConversation);
   const setActiveConversation = useGameStore((s) => s.setActiveConversation);
   const addLog = useGameStore((s) => s.addLog);
@@ -25,66 +27,117 @@ export function ChatBox() {
 
   const submit = async () => {
     const text = input.trim();
-    if (!text) return;
+    if (!text || busy) return;
     setInput('');
-    addLog(`> ${text}`);
-    const result = await parseCommand(text);
-    if (result.message) addLog(result.message);
+    setBusy(true);
+
+    try {
+      if (activeConversation) {
+        const action = parseAction(text);
+        if (action.type === 'converse') {
+          await playerSaysToNPC(activeConversation, action.text);
+        } else {
+          await executeAction(activeConversation, action);
+        }
+      } else {
+        addLog(`> ${text}`);
+        const result = await parseCommand(text);
+        if (result.message) addLog(result.message);
+      }
+    } finally {
+      setBusy(false);
+    }
   };
 
-  const activeNpc = npcs.find((n) => n.id === activeConversation);
+  const activeConfig = activeConversation ? NPC_CONFIG_MAP[activeConversation] : null;
 
   const visibleMessages = activeConversation
     ? messages.filter(
-        (m) =>
-          m.from === activeConversation ||
-          (m.from === 'player' && m.to === activeConversation),
+        (m) => m.from === activeConversation || (m.from === 'player' && m.to === activeConversation),
       )
-    : messages.slice(-12);
+    : messages.slice(-15);
 
   return (
     <View style={styles.container}>
-      {activeNpc && (
-        <View style={styles.header}>
-          <Text style={styles.headerText}>Talking to {activeNpc.name}</Text>
-          <TouchableOpacity onPress={() => setActiveConversation(null)}>
-            <Text style={styles.closeBtn}>X</Text>
-          </TouchableOpacity>
-        </View>
-      )}
+      {/* Header */}
+      <View style={styles.header}>
+        {activeConfig ? (
+          <>
+            <View style={[styles.npcStripe, { backgroundColor: activeConfig.color }]} />
+            <View style={styles.headerInfo}>
+              <Text style={[styles.headerName, { color: activeConfig.color }]}>
+                {activeConfig.name}
+              </Text>
+              <Text style={styles.headerRole}>{activeConfig.role}</Text>
+            </View>
+            <View style={styles.flex1} />
+            <TouchableOpacity style={styles.closeBtn} onPress={() => setActiveConversation(null)}>
+              <Text style={styles.closeBtnText}>✕</Text>
+            </TouchableOpacity>
+          </>
+        ) : (
+          <Text style={styles.headerLog}>Chat</Text>
+        )}
+      </View>
+
+      {/* Messages */}
       <ScrollView
         ref={scrollRef}
         style={styles.messages}
         contentContainerStyle={styles.messagesContent}
       >
+        {visibleMessages.length === 0 && (
+          <Text style={styles.emptyHint}>
+            {activeConfig
+              ? `Give ${activeConfig.name} a command:\n"go to the well"  ·  "follow me"  ·  "stay"\n"tell Alice the mill is open"`
+              : 'Press E near an NPC to start talking.'}
+          </Text>
+        )}
         {visibleMessages.map((msg) => {
-          const npcFrom = npcs.find((n) => n.id === msg.from);
           const isPlayer = msg.from === 'player';
+          const npcCfg = NPC_CONFIG_MAP[msg.from] ?? NPC_CONFIG_MAP[msg.to];
+          const color = npcCfg?.color ?? '#FFAA55';
           return (
-            <View key={msg.id} style={styles.msgRow}>
-              <Text style={isPlayer ? styles.playerName : styles.npcName}>
-                {isPlayer ? 'You' : (npcFrom?.name ?? msg.from)}:{' '}
+            <View
+              key={msg.id}
+              style={[styles.bubble, isPlayer ? styles.bubblePlayer : styles.bubbleNpc]}
+            >
+              {!isPlayer && (
+                <Text style={[styles.sender, { color }]}>
+                  {npcCfg?.name ?? msg.from}
+                </Text>
+              )}
+              <Text style={[styles.bubbleText, isPlayer && styles.bubbleTextPlayer]}>
+                {msg.text}
               </Text>
-              <Text style={styles.msgText}>{msg.text}</Text>
             </View>
           );
         })}
       </ScrollView>
+
+      {/* Input */}
       <View style={styles.inputRow}>
         <TextInput
           style={styles.input}
           value={input}
           onChangeText={setInput}
           placeholder={
-            activeNpc ? `Say to ${activeNpc.name}...` : 'Command or message...'
+            activeConfig
+              ? `Command ${activeConfig.name}...`
+              : 'go to inn  ·  talk to Alice'
           }
-          placeholderTextColor="#555"
+          placeholderTextColor="#504030"
           onSubmitEditing={submit}
           returnKeyType="send"
           blurOnSubmit={false}
+          editable={!busy}
         />
-        <TouchableOpacity style={styles.sendBtn} onPress={submit}>
-          <Text style={styles.sendText}>Send</Text>
+        <TouchableOpacity
+          style={[styles.sendBtn, busy && styles.sendBtnBusy]}
+          onPress={submit}
+          disabled={busy}
+        >
+          <Text style={styles.sendText}>{busy ? '…' : '›'}</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -93,43 +146,84 @@ export function ChatBox() {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: 'rgba(0,0,0,0.78)',
-    borderRadius: 8,
-    padding: 8,
+    backgroundColor: 'rgba(8,5,2,0.72)',
+    borderRadius: 12,
+    padding: 10,
+    minWidth: 300,
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: '#444',
-    paddingBottom: 4,
+    paddingBottom: 7,
     marginBottom: 5,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.06)',
   },
-  headerText: { color: '#FFD700', fontWeight: 'bold', fontSize: 13 },
-  closeBtn: { color: '#aaa', fontSize: 14, paddingHorizontal: 6 },
-  messages: { maxHeight: 110 },
-  messagesContent: { paddingBottom: 2 },
-  msgRow: { flexDirection: 'row', flexWrap: 'wrap', marginVertical: 2 },
-  playerName: { color: '#88CCFF', fontWeight: 'bold', fontSize: 12 },
-  npcName: { color: '#FFAA55', fontWeight: 'bold', fontSize: 12 },
-  msgText: { color: '#ddd', fontSize: 12, flex: 1 },
-  inputRow: { flexDirection: 'row', marginTop: 6, gap: 6 },
+  npcStripe: {
+    width: 3,
+    height: 30,
+    borderRadius: 2,
+    marginRight: 9,
+  },
+  headerInfo: { justifyContent: 'center' },
+  headerName: { fontWeight: 'bold', fontSize: 15 },
+  headerRole: { color: '#706050', fontSize: 11 },
+  headerLog: {
+    color: '#908070',
+    fontWeight: 'bold',
+    fontSize: 12,
+  },
+  flex1: { flex: 1 },
+  closeBtn: { paddingHorizontal: 8, paddingVertical: 4 },
+  closeBtnText: { color: '#605040', fontSize: 14 },
+  messages: { maxHeight: 200 },
+  messagesContent: { paddingBottom: 2, gap: 5 },
+  emptyHint: {
+    color: '#483828',
+    fontSize: 11,
+    fontStyle: 'italic',
+    textAlign: 'center',
+    paddingVertical: 10,
+    lineHeight: 18,
+  },
+  bubble: {
+    maxWidth: '85%',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  bubblePlayer: {
+    alignSelf: 'flex-end',
+    backgroundColor: 'rgba(30,60,120,0.75)',
+  },
+  bubbleNpc: {
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+  sender: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    marginBottom: 2,
+  },
+  bubbleText: { color: '#C0A880', fontSize: 13, lineHeight: 18 },
+  bubbleTextPlayer: { color: '#8ABCFF' },
+  inputRow: { flexDirection: 'row', marginTop: 7, gap: 6 },
   input: {
     flex: 1,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    color: '#eee',
-    borderRadius: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 5,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    color: '#D0C0A0',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
     fontSize: 13,
   },
   sendBtn: {
-    backgroundColor: '#4169E1',
-    borderRadius: 4,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    backgroundColor: 'rgba(200,150,50,0.25)',
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
     justifyContent: 'center',
   },
-  sendText: { color: '#fff', fontSize: 13, fontWeight: 'bold' },
+  sendBtnBusy: { opacity: 0.4 },
+  sendText: { color: '#F0C040', fontSize: 18, fontWeight: 'bold' },
 });

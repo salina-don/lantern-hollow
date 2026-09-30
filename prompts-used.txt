@@ -1,0 +1,312 @@
+LANTERN HOLLOW — AI-Assisted Game Development Prompts
+======================================================
+Course Assignment: Building a Game with AI (Claude Code)
+Student: Salina Bhattarai
+Date: September 2026
+
+This document lists every prompt used to develop "Lantern Hollow," a 3D
+village shopkeeper survival game. The game is built with Expo (SDK 57),
+React Native, TypeScript, and react-three-fiber (Three.js). All code was
+generated iteratively through Claude Code — each prompt built on the
+last, with constant testing, debugging, and refinement along the way.
+
+Total prompts: 33
+Total files created/modified: 30+
+Test coverage: 47 unit tests (collision, pathfinding, command parser)
+
+======================================================================
+PHASE 1: FOUNDATION & WORLD BUILDING (Prompts 1–11)
+======================================================================
+This phase established the 3D world, characters, AI dialogue, and the
+core quest system. It required multiple iterations to get collision
+detection, NPC pathfinding, and the day/night cycle working correctly.
+
+Prompt 1 — Project Setup & 3D Village World
+"Create a 3D village game with Expo and react-three-fiber. Build a
+low-poly village with third-person camera and collision detection."
+→ Set up the entire Expo project from scratch. Built terrain, buildings
+  (tavern, bakery, forge, player house), trees, a well, fences, and a
+  village gate. Implemented AABB collision detection for all structures
+  and objects. Added third-person camera with WASD movement controls.
+
+Prompt 2 — NPC Characters & Interaction
+"Add 5 named NPCs with roles, personalities, floating name labels,
+and E-key selection for interaction."
+→ Created 5 unique NPCs: Alice (tavern keeper), Bob (blacksmith),
+  Miller (miller), Elara (herbalist), Finn (guard). Each has a home
+  location, role, personality traits, and a floating name label.
+  E-key proximity detection for player-NPC interaction.
+
+Prompt 3 — Chat & Command System
+"Add a chat box with typed NPC commands, speech bubbles, and a
+command parser with unit tests."
+→ Built a full command parser supporting natural language NPC commands
+  (talk, follow, deliver messages). Added floating speech bubbles above
+  NPCs. Wrote comprehensive unit tests for the parser.
+
+Prompt 4 — NPC Social System
+"Add NPC-to-NPC conversations, a global rumor system,
+deliver_message walking behavior, and a rumor HUD panel."
+→ NPCs can now talk to each other, spread rumors across the village,
+  and walk to deliver messages. Added a collapsible rumor tracking
+  panel to the HUD so the player can see what's spreading.
+
+Prompt 5 — AI-Powered NPC Dialogue
+"Integrate Claude API so NPCs respond with AI-generated dialogue
+using JSON {say, action} replies."
+→ Connected to the Claude API for dynamic NPC responses. Each NPC
+  responds in character based on their personality and role. API key
+  is stored in memory only (never persisted) for security.
+
+Prompt 6 — UI Visual Polish
+"Improve the UI with a Kenney-inspired aesthetic — warmer colors,
+lighter panels, key badges, and collapsible rumor panel."
+→ Redesigned the entire UI with a warm, hand-crafted game feel.
+  Added key badges showing controls, improved panel styling, and
+  made the rumor panel collapsible to save screen space.
+
+Prompt 7 — Richer Village Environment
+"Make the village richer with proper character figures and more
+atmospheric details."
+→ Added environmental details: flowers, garden patches, path stones,
+  pond with lilypads, wooden signs, and improved building decorations
+  to make the village feel alive and immersive.
+
+Prompt 8 — Minecraft-Style Characters
+"Give all characters Minecraft-style box bodies with swinging arms
+and legs for walking animation."
+→ Replaced basic shapes with full Minecraft-style box characters.
+  Each character has a head, torso, two arms, and two legs with
+  procedural walking animation (swinging limbs using sine waves).
+
+Prompt 9 — Day/Night Cycle
+"Add a day/night cycle where NPCs gather at the tavern at night."
+→ Implemented a complete day/night system with 6 phases (dawn,
+  morning, noon, afternoon, dusk, night). Sky color and lighting
+  change smoothly. NPCs respond to time of day with behavior changes.
+
+Prompt 10 — Quest Chain System
+"Add a quest chain system with item-based quests and a Village
+Festival win condition when all quests are completed."
+→ Built a quest system where each NPC needs a specific item. When
+  all quests are complete, a Village Festival celebration triggers
+  as the win condition. Added quest tracking panel to the UI.
+
+Prompt 11 — Character Faces
+"Add Minecraft-style faces to all characters — eyes, pupils, and
+mouth on the front of the head."
+→ Added detailed pixel-art faces to all characters using small 3D
+  geometry: eyes with pupils and a mouth, giving each character
+  personality and making them visually recognizable.
+
+======================================================================
+PHASE 2: SHOP & SURVIVAL MECHANICS (Prompts 12–18)
+======================================================================
+This phase transformed the game from an exploration game into a
+shopkeeper survival game. Required significant iteration on collision
+systems, queue management, and NPC behavior state machines.
+
+Prompt 12 — Shop & Survival System Overhaul
+"NPCs will come to my shop and ask for items. They don't leave
+until I give them what they want. I earn money from serving them.
+I also need food to buy from others to survive. I have my own home
+where I can go in and sleep. If I don't sleep I lose health. If I
+don't eat I lose health. In my house there is a bed where I click
+and in a few seconds it's morning and I click a button to get up."
+→ Major game overhaul. Added: shop system where NPCs request specific
+  items, gold economy for buying/selling, food stall with purchasable
+  meals, hunger/energy/health stats that drain over time, player house
+  with a clickable bed for sleeping, sleep overlay with wake-up button,
+  and stat-based game over conditions. This was the biggest single
+  prompt — it touched nearly every system in the game.
+
+Prompt 13 — Visible Doors
+"Have the house have a door that is visible."
+→ Added visible door geometry to all buildings. Required careful
+  positioning to avoid z-fighting with wall meshes.
+
+Prompt 14 — Food Purchase Feedback
+"When I buy food the money should be used and I should see the
+gold change."
+→ Connected food purchases to the gold system. Added visual feedback
+  showing gold changing when buying food at the stall.
+
+Prompt 15 — Shop Queue System
+"There should be a line of people in front of my shop and they
+should not leave till I give them what they want."
+→ Built a queue system with assigned standing spots. NPCs line up
+  in front of the shop and wait patiently with speech bubbles showing
+  what they need. They refuse to leave until served.
+
+Prompt 16 — NPC Collision Avoidance
+"NPCs are passing through one another — that should not be the
+case. Add collision between NPCs."
+→ Added NPC-to-NPC collision detection (MIN_NPC_DIST = 0.6). NPCs
+  now push apart when too close and navigate around each other.
+  Required updating the pathfinding system to account for NPC radii.
+
+Prompt 17 — Served NPC Behavior
+"If an NPC already got what they want, they should go do their own
+work and not come to the shop again."
+→ Added quest completion tracking. Once an NPC receives their item,
+  they're marked as served and filtered out of future shop visits.
+
+Prompt 18 — Daily Visit Reset
+"When done getting things, NPCs won't be coming to the shop for
+that day. Reset at dawn."
+→ Added per-day tracking with a servedToday set that clears at dawn.
+  NPCs visit the shop once per day maximum, and the cycle resets
+  each morning so the gameplay loop repeats daily.
+
+======================================================================
+PHASE 3: POLISH, GAME FEEL & BALANCING (Prompts 19–33)
+======================================================================
+This phase focused on visual polish, game feel, bug fixes, and
+extensive iteration on NPC behavior. Many prompts in this phase were
+debugging and refinement — fixing issues discovered through playtesting
+and tuning the game balance to feel right.
+
+Prompt 19 — Brainstorming Improvements
+"What else can I add to make the game better?"
+→ Claude suggested several improvements: floating gold text animation,
+  NPC emotion system, chimney smoke particles, day counter with score
+  tracking, and walking dust puffs. This collaborative brainstorming
+  helped identify what would have the most impact on game feel.
+
+Prompt 20 — Implementing Visual Improvements
+"Yes, do them slowly one after another."
+→ Implemented all suggested improvements one by one:
+  • Floating "+gold" / "-gold" text that animates upward and fades
+  • NPC emotion faces (neutral, happy, waiting) that change expression
+  • Chimney smoke particles rising from bakery and forge
+  • Day counter and total gold earned display in the HUD
+  • Walking dust puff particles behind moving NPCs
+  Each feature required careful integration with existing systems.
+
+Prompt 21 — Item Icons in Popups
+"The popup should have the object image on them so that it's easy
+to choose which item to give."
+→ Created pixel-art style item icons for every item in the game
+  (millstone, salve, tome, rations, flour, bread, horseshoe, candle,
+  apple, stew). Built an ItemIcon component system with fallbacks
+  for unknown items. Integrated into both shop and food popups.
+
+Prompt 22 — Door Styling
+"Make doors black colour in all houses with yellow handle."
+→ Styled all building doors with black color and bright yellow
+  handles for visual contrast against the house walls.
+
+Prompt 23 — Door Visibility Fix (Bug Fix)
+"No, doors are the same color as the house right now. That's why
+I can't see them."
+→ Discovered doors were z-fighting with walls (both flat surfaces at
+  the same depth). Fixed by converting doors from flat planes to 3D
+  boxes with depth, and switching to meshBasicMaterial so doors render
+  at consistent black regardless of scene lighting and shadows.
+
+Prompt 24 — Interactive Door System
+"Make doors open and close. Only enter when open. To open we need
+to click on it. Even for NPCs — they will open and close doors."
+→ Built a full interactive door system: doors rotate open on a pivot
+  hinge with smooth lerp animation, click-to-toggle for the player,
+  proximity-based auto-open/close for NPCs (DOOR_OPEN_DIST = 1.8,
+  DOOR_CLOSE_DIST = 3.0). Added door colliders to the collision
+  system — closed doors block movement, open doors allow passage.
+  Updated pathfinding to skip door colliders so NPCs can plan paths
+  through doorways. Added new collision tests for door states.
+
+Prompt 25 — NPCs Go Home at Night
+"NPCs have to leave when it's night and go sleep."
+→ Changed night behavior: instead of all NPCs going to the tavern,
+  each NPC goes to their own home building. Door opens as they
+  approach, they enter, door closes behind them. At dawn, doors open
+  and NPCs come back out with morning greetings. Required mapping
+  each NPC to their home building and coordinating door animations.
+
+Prompt 26 — Daily Serve Requirement (Game Over Condition)
+"If not given everyone what they need in that day, game is over
+and have to restart."
+→ Added a game-over condition: if any NPC with an unfulfilled quest
+  hasn't been served by nightfall, the game ends. Shows which NPCs
+  were left unserved. Added a restart button to try again. This
+  creates real urgency — the player must serve everyone each day.
+
+Prompt 27 — NPCs Leave After Being Served
+"Once they get what they want they have to go away from shop and
+not come for the day. Mind their own business."
+→ Fixed served NPCs lingering near the shop. Root cause: NPCs were
+  being sent to "Town Square" which is at [0,0,0] — right where the
+  shop is. Fixed by sending served NPCs to their home building and
+  excluding Town Square from all NPC wander destinations.
+
+Prompt 28 — Queue Behavior & Night Departure
+"When shop closes they go to their house or work away from shop
+angry. Only one speaks at a time when in shop. The first one, and
+once served they go away and next comes in front of queue."
+→ Three changes: (1) At nightfall, unserved NPCs walk home angry
+  with "You never helped me!" speech bubbles before game over triggers.
+  (2) Only the front-of-queue NPC shows their request — others wait
+  silently. (3) After serving, the queue advances and the new front
+  NPC starts speaking. Player can only interact with the front NPC.
+
+Prompt 29 — One NPC at a Time
+"One person comes at a time and till 5 seconds then only another
+comes."
+→ Simplified the queue to single-visitor mode: only one NPC visits
+  the shop at a time. The next NPC arrives exactly 5 seconds after
+  the previous one is served and leaves.
+
+Prompt 30 — Hunger Drain Speed
+"Make food run fast and let the day sit for at least 2 minutes."
+→ Doubled the hunger drain rate (every 4 seconds instead of 8) to
+  make food management more urgent. Adjusted day duration to give
+  enough time to serve all NPCs.
+
+Prompt 31 — Day Duration Too Short (Bug Fix)
+"Day is going away fast!"
+→ The day was set too short at 120 seconds. Restored to 240 seconds
+  (~2.5 minutes of usable daytime) for a balanced pace.
+
+Prompt 32 — Day Duration Fine-Tuning
+"Little bit more longer."
+→ Extended day to 360 seconds (~3.75 minutes of daytime). Gives the
+  player comfortable time to serve NPCs, buy food, and manage stats
+  without feeling too rushed or too relaxed.
+
+Prompt 33 — NPC Queue & Wander Fix (Bug Fix)
+"One after another is broke again, all coming together. Let them
+come one after another please, and if not in shop they have to
+keep walking or do something."
+→ Two issues fixed: (1) Replaced polling-based shop timer with an
+  event-driven system — when an NPC is served, the next one is
+  directly triggered 5 seconds later. Added hard guards (clear maps
+  before adding) to make one-at-a-time bulletproof. (2) Shortened
+  NPC wander interval from 8–13 seconds to 3–6 seconds so NPCs are
+  always visibly walking around the village doing things, never just
+  standing idle. Multiple debugging iterations were needed to get
+  the queue system reliable.
+
+======================================================================
+SUMMARY
+======================================================================
+This project was built entirely through AI-assisted development using
+Claude Code over multiple iterative sessions. Key technical challenges
+that required significant debugging and iteration:
+
+• Collision detection: AABB wall segments with door gaps, door
+  colliders that toggle with open/close state, NPC-to-NPC collision
+• A* pathfinding: 80×80 nav grid, 8-directional movement, corner-
+  cutting prevention, door-aware grid building
+• NPC state machine: visiting → waiting → served → wandering, with
+  emotion states, speech bubbles, and door interactions
+• Shop queue: event-driven single-visitor system with proper cleanup
+  and state management (required 4 iterations to get right)
+• Day/night cycle: phase-based time system driving NPC behavior,
+  game-over conditions, and stat drain rates
+• Performance: module-level refs to avoid 60fps re-renders, careful
+  zustand state management, animated particles
+
+The game demonstrates iterative development with AI — each prompt
+built on previous work, and many prompts were direct responses to
+bugs found during playtesting. The final game has 30+ source files,
+47 unit tests, and a complete gameplay loop.
