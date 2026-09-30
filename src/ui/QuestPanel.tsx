@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useGameStore } from '../state/gameStore';
-import { QUESTS } from '../systems/questData';
+import { ITEM_QUESTS, ITEM_MAP } from '../systems/itemData';
 import { NPC_CONFIG_MAP } from '../entities/npcConfig';
 
 export function QuestPanel() {
@@ -9,14 +9,14 @@ export function QuestPanel() {
   const quests = useGameStore((s) => s.quests);
   const festival = useGameStore((s) => s.festivalStarted);
 
-  const completed = QUESTS.filter((q) => (quests[q.id] ?? 0) >= q.steps.length).length;
-  const total = QUESTS.length;
+  const completed = ITEM_QUESTS.filter((q) => (quests[q.id] ?? 0) >= 1).length;
+  const total = ITEM_QUESTS.length;
 
   if (!expanded) {
     return (
       <TouchableOpacity style={styles.pill} onPress={() => setExpanded(true)}>
         <Text style={styles.pillText}>
-          {festival ? '★ Festival!' : 'Quests'} {completed}/{total}
+          {festival ? 'Festival!' : 'Deliveries'} {completed}/{total}
         </Text>
       </TouchableOpacity>
     );
@@ -26,46 +26,31 @@ export function QuestPanel() {
     <View style={styles.container}>
       <TouchableOpacity onPress={() => setExpanded(false)}>
         <Text style={styles.title}>
-          {festival ? '★ Festival! ★' : 'Quests'}{' '}
-          <Text style={styles.count}>{completed}/{total} ▾</Text>
+          {festival ? 'Festival!' : 'Deliveries'}{' '}
+          <Text style={styles.count}>{completed}/{total}</Text>
         </Text>
       </TouchableOpacity>
 
       {festival && (
         <Text style={styles.festivalMsg}>
-          The village celebrates! All quests complete.
+          The village celebrates! All deliveries complete.
         </Text>
       )}
 
-      {QUESTS.map((quest) => {
-        const step = quests[quest.id] ?? 0;
-        const done = step >= quest.steps.length;
-        const active = step > 0 && !done;
-        const discovered = step > 0;
-
-        let hint = '';
-        if (active) {
-          const target = quest.steps[step].target;
-          const name = NPC_CONFIG_MAP[target]?.name ?? target;
-          hint = `Talk to ${name}`;
-        }
+      {ITEM_QUESTS.map((quest) => {
+        const done = (quests[quest.id] ?? 0) >= 1;
+        const npcName = NPC_CONFIG_MAP[quest.npcId]?.name ?? quest.npcId;
+        const itemName = ITEM_MAP[quest.itemId]?.name ?? quest.itemId;
 
         return (
           <View key={quest.id} style={styles.questRow}>
-            <Text
-              style={[
-                styles.questTitle,
-                done && styles.questDone,
-                active && styles.questActive,
-              ]}
-            >
-              {done ? '✓ ' : active ? '→ ' : '  '}
+            <Text style={[styles.questTitle, done && styles.questDone]}>
+              {done ? '✓ ' : '→ '}
               {quest.title}
             </Text>
-            {active && <Text style={styles.questHint}>{hint}</Text>}
-            {!discovered && !done && (
-              <Text style={styles.questGiver}>
-                {NPC_CONFIG_MAP[quest.giver]?.name ?? quest.giver}
+            {!done && (
+              <Text style={styles.questHint}>
+                Give {itemName} to {npcName}
               </Text>
             )}
           </View>
@@ -119,27 +104,20 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   questTitle: {
-    color: '#807060',
+    color: '#E0C070',
     fontSize: 11,
+    fontWeight: 'bold',
   },
   questDone: {
     color: '#5a8a3a',
     textDecorationLine: 'line-through',
+    fontWeight: 'normal',
     opacity: 0.7,
-  },
-  questActive: {
-    color: '#E0C070',
-    fontWeight: 'bold',
   },
   questHint: {
     color: '#A08860',
     fontSize: 10,
     marginLeft: 16,
     fontStyle: 'italic',
-  },
-  questGiver: {
-    color: '#605040',
-    fontSize: 10,
-    marginLeft: 16,
   },
 });

@@ -22,13 +22,29 @@ const PHASE_LABELS: Record<GamePhase, string> = {
   night: 'Night',
 };
 
+function StatBar({ label, value, color }: { label: string; value: number; color: string }) {
+  return (
+    <View style={styles.statRow}>
+      <Text style={styles.statLabel}>{label}</Text>
+      <View style={styles.statBarBg}>
+        <View style={[styles.statBarFill, { width: `${Math.max(0, value)}%`, backgroundColor: color }]} />
+      </View>
+    </View>
+  );
+}
+
 export function HUD() {
-  const pos = useGameStore((s) => s.playerPosition);
   const npcs = useGameStore((s) => s.npcs);
   const activeId = useGameStore((s) => s.activeConversation);
   const activeConfig = activeId ? NPC_CONFIG_MAP[activeId] : null;
   const phase = useGameStore((s) => s.gamePhase);
   const phaseColor = PHASE_COLORS[phase];
+  const gold = useGameStore((s) => s.gold);
+  const health = useGameStore((s) => s.health);
+  const hunger = useGameStore((s) => s.hunger);
+  const energy = useGameStore((s) => s.energy);
+  const day = useGameStore((s) => s.day);
+  const totalGoldEarned = useGameStore((s) => s.totalGoldEarned);
 
   return (
     <View style={styles.container}>
@@ -36,12 +52,16 @@ export function HUD() {
       <View style={styles.timeRow}>
         <View style={[styles.timeDot, { backgroundColor: phaseColor }]} />
         <Text style={[styles.phaseText, { color: phaseColor }]}>
-          {PHASE_LABELS[phase]}
+          Day {day} · {PHASE_LABELS[phase]}
         </Text>
       </View>
-      <Text style={styles.coord}>
-        {pos[0].toFixed(1)}, {pos[2].toFixed(1)}
-      </Text>
+      <Text style={styles.goldText}>{gold} gold  (earned: {totalGoldEarned})</Text>
+
+      <View style={styles.statsBlock}>
+        <StatBar label="HP" value={health} color="#c04040" />
+        <StatBar label="Food" value={hunger} color="#c0a040" />
+        <StatBar label="Rest" value={energy} color="#4080c0" />
+      </View>
 
       {activeConfig && (
         <View style={[styles.activeCard, { borderLeftColor: activeConfig.color }]}>
@@ -52,7 +72,6 @@ export function HUD() {
         </View>
       )}
 
-      {/* Compact NPC status row */}
       <View style={styles.npcRow}>
         {npcs.map((npc) => {
           const cfg = NPC_CONFIG_MAP[npc.id];
@@ -76,7 +95,6 @@ export function HUD() {
         })}
       </View>
 
-      {/* Kenney-style key badge controls */}
       <View style={styles.controls}>
         <View style={styles.controlGroup}>
           <View style={styles.keyBadge}>
@@ -89,12 +107,6 @@ export function HUD() {
             <Text style={styles.keyText}>E</Text>
           </View>
           <Text style={styles.controlLabel}>interact</Text>
-        </View>
-        <View style={styles.controlGroup}>
-          <View style={styles.keyBadge}>
-            <Text style={styles.keyText}>drag</Text>
-          </View>
-          <Text style={styles.controlLabel}>orbit</Text>
         </View>
       </View>
     </View>
@@ -138,11 +150,38 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     ...shadow,
   },
-  coord: {
-    color: '#706050',
-    fontSize: 10,
+  goldText: {
+    color: '#F0C040',
+    fontSize: 13,
+    fontWeight: 'bold',
+    marginBottom: 6,
+    ...shadow,
+  },
+  statsBlock: {
+    gap: 4,
     marginBottom: 10,
-    fontVariant: ['tabular-nums'] as any,
+  },
+  statRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  statLabel: {
+    color: '#A09080',
+    fontSize: 10,
+    fontWeight: 'bold',
+    width: 30,
+  },
+  statBarBg: {
+    flex: 1,
+    height: 8,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  statBarFill: {
+    height: '100%',
+    borderRadius: 4,
   },
   activeCard: {
     borderLeftWidth: 3,

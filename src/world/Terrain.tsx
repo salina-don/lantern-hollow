@@ -36,7 +36,6 @@ function FlowerPatch({ pos, color }: { pos: [number, number, number]; color: str
 
 const ROCKS: Array<{ pos: [number, number, number]; scale: number }> = [
   { pos: [5, 0.12, -2], scale: 0.35 },
-  { pos: [-4, 0.15, 8], scale: 0.5 },
   { pos: [12, 0.1, 3], scale: 0.28 },
   { pos: [-11, 0.14, -1], scale: 0.42 },
   { pos: [3, 0.12, -9], scale: 0.38 },
@@ -49,7 +48,6 @@ const BUSHES: Array<{ pos: [number, number, number]; r: number }> = [
   { pos: [10, 0, -3], r: 0.4 },
   { pos: [-12, 0, 5], r: 0.55 },
   { pos: [6, 0, -10], r: 0.35 },
-  { pos: [-3, 0, 9], r: 0.48 },
   { pos: [11, 0, 8], r: 0.42 },
   { pos: [-11, 0, -8], r: 0.38 },
 ];
@@ -105,6 +103,11 @@ export function Terrain() {
       {/* Path spur to bakery */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-4.5, -0.03, 3.5]}>
         <planeGeometry args={[1.3, 5]} />
+        <meshLambertMaterial color="#8B7355" />
+      </mesh>
+      {/* Path to player house */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-2, -0.03, 5]}>
+        <planeGeometry args={[1.2, 6]} />
         <meshLambertMaterial color="#8B7355" />
       </mesh>
 

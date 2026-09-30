@@ -1,20 +1,53 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { HUD } from './HUD';
-import { ChatBox } from './ChatBox';
 import { LogPanel } from './LogPanel';
 import { RumorPanel } from './RumorPanel';
 import { QuestPanel } from './QuestPanel';
-import { ApiKeyField } from './ApiKeyField';
+import { QuestPopup } from './QuestPopup';
+import { ItemPopup } from './ItemPopup';
+import { SleepOverlay } from './SleepOverlay';
+import { FoodPopup } from './FoodPopup';
+import { GoldFloat } from './GoldFloat';
 import { Joystick } from './Joystick';
+import { useGameStore } from '../state/gameStore';
+
+function GameOverOverlay() {
+  const gameOver = useGameStore((s) => s.gameOver);
+  const reason = useGameStore((s) => s.gameOverReason);
+  if (!gameOver) return null;
+
+  const isUnserved = reason.includes("didn't serve");
+  const title = isUnserved ? 'Shop Closed!' : 'You passed out!';
+  const sub = isUnserved
+    ? reason
+    : 'Remember to eat food and sleep at home.';
+
+  return (
+    <View style={styles.gameOverOverlay}>
+      <Text style={styles.gameOverText}>{title}</Text>
+      <Text style={styles.gameOverSub}>{sub}</Text>
+      <TouchableOpacity
+        style={styles.retryBtn}
+        onPress={() => useGameStore.getState().resetStats()}
+      >
+        <Text style={styles.retryText}>Try Again</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
 
 export function GameUI() {
   return (
     <View style={styles.overlay} pointerEvents="box-none">
+      <SleepOverlay />
+      <GameOverOverlay />
+      <QuestPopup />
+      <ItemPopup />
+      <FoodPopup />
+      <GoldFloat />
       <View style={styles.topRow} pointerEvents="box-none">
         <HUD />
-        <View style={styles.spacer} pointerEvents="none" />
-        <ApiKeyField />
       </View>
       <View style={styles.bottomRow} pointerEvents="box-none">
         <View style={styles.leftCol} pointerEvents="box-none">
@@ -26,8 +59,6 @@ export function GameUI() {
         </View>
         <View style={styles.rightCol} pointerEvents="box-none">
           <LogPanel />
-          <View style={styles.gap} />
-          <ChatBox />
         </View>
       </View>
     </View>
@@ -44,7 +75,6 @@ const styles = StyleSheet.create({
     padding: 16,
     alignItems: 'flex-start',
   },
-  spacer: { flex: 1 },
   bottomRow: {
     flexDirection: 'row',
     padding: 16,
@@ -58,4 +88,33 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   gap: { height: 8 },
+  gameOverOverlay: {
+    ...(StyleSheet.absoluteFill as object),
+    backgroundColor: 'rgba(30, 0, 0, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 600,
+  },
+  gameOverText: {
+    color: '#c04040',
+    fontSize: 32,
+    fontWeight: 'bold',
+    marginBottom: 12,
+  },
+  gameOverSub: {
+    color: '#a08060',
+    fontSize: 14,
+    marginBottom: 30,
+  },
+  retryBtn: {
+    backgroundColor: '#c04040',
+    borderRadius: 12,
+    paddingHorizontal: 36,
+    paddingVertical: 14,
+  },
+  retryText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
 });

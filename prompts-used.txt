@@ -1,0 +1,141 @@
+LANTERN HOLLOW — AI-Assisted Game Development Prompts
+======================================================
+Course Assignment: Building a Game with AI (Claude Code)
+Student: Salina Bhattarai
+Date: September 2026
+
+This document contains all the prompts used to build "Lantern Hollow,"
+a 3D village shopkeeper game built with Expo, React Native, TypeScript,
+and react-three-fiber (Three.js). Each prompt was given to Claude Code,
+which generated the corresponding code.
+
+----------------------------------------------------------------------
+PHASE 1: FOUNDATION & WORLD BUILDING
+----------------------------------------------------------------------
+
+Prompt 1 — Project Setup & Village World
+"Create a 3D village game with Expo and react-three-fiber. Build a
+low-poly village with third-person camera and collision detection."
+
+Prompt 2 — NPC Characters
+"Add 5 named NPCs with roles, personalities, floating name labels,
+and E-key selection for interaction."
+
+Prompt 3 — Chat & Command System
+"Add a chat box with typed NPC commands, speech bubbles, and a
+command parser with unit tests."
+
+Prompt 4 — NPC Social System
+"Add NPC-to-NPC conversations, a global rumor system,
+deliver_message walking behavior, and a rumor HUD panel."
+
+Prompt 5 — AI-Powered NPCs
+"Integrate Claude API so NPCs respond with AI-generated dialogue
+using JSON {say, action} replies."
+
+Prompt 6 — Visual Polish
+"Improve the UI with a Kenney-inspired aesthetic — warmer colors,
+lighter panels, key badges, and collapsible rumor panel."
+
+Prompt 7 — Richer Village
+"Make the village richer with proper character figures and more
+atmospheric details."
+
+Prompt 8 — Minecraft-Style Characters
+"Give all characters Minecraft-style box bodies with swinging arms
+and legs for walking animation."
+
+Prompt 9 — Day/Night Cycle
+"Add a day/night cycle where NPCs gather at the tavern at night."
+
+Prompt 10 — Quest System
+"Add a quest chain system with item-based quests and a Village
+Festival win condition when all quests are completed."
+
+Prompt 11 — Character Faces
+"Add Minecraft-style faces to all characters — eyes, pupils, and
+mouth on the front of the head."
+
+----------------------------------------------------------------------
+PHASE 2: SHOP & SURVIVAL MECHANICS
+----------------------------------------------------------------------
+
+Prompt 12 — Shop & Survival Overhaul
+"NPCs will come to my shop and ask for items. They don't leave
+until I give them what they want. I earn money from serving them.
+I also need food to buy from others to survive. I have my own home
+where I can go in and sleep. If I don't sleep I lose health. If I
+don't eat I lose health. In my house there is a bed where I click
+and in a few seconds it's morning and I click a button to get up."
+
+Prompt 13 — Visible Door
+"Have the house have a door that is visible."
+
+Prompt 14 — Food Purchase Feedback
+"When I buy food the money should be used and I should see the
+gold change."
+
+Prompt 15 — Shop Queue System
+"There should be a line of people in front of my shop and they
+should not leave till I give them what they want."
+
+Prompt 16 — NPC-to-NPC Collision
+"NPCs are passing through one another — that should not be the
+case. Add collision between NPCs."
+
+Prompt 17 — Quest Completion Filter
+"If an NPC already got what they want, they should go do their own
+work and not come to the shop again."
+
+Prompt 18 — Daily Visit Limit
+"When done getting things, NPCs won't be coming to the shop for
+that day. Reset at dawn."
+
+----------------------------------------------------------------------
+PHASE 3: POLISH & GAME FEEL
+----------------------------------------------------------------------
+
+Prompt 19 — Game Improvement Ideas
+"What else can I add to make the game better?"
+(Claude suggested: floating gold text, NPC emotions, chimney smoke,
+day counter, dust puffs, and more.)
+
+Prompt 20 — Implement Improvements
+"Yes, do them slowly one after another."
+(Implemented: floating +gold/-gold text, NPC emotion faces,
+chimney smoke particles, day counter with score tracking,
+walking dust puffs.)
+
+Prompt 21 — Item Icons
+"The popup should have the object image on them so that it's easy
+to choose which item to give."
+
+Prompt 22 — Door Colors
+"Make doors black colour in all houses with yellow handle."
+
+Prompt 23 — Door Visibility Fix
+"No, doors are the same color as the house right now. That's why
+I can't see them."
+(Fixed by making doors 3D boxes with meshBasicMaterial so they
+don't blend with walls regardless of lighting.)
+
+Prompt 24 — Interactive Doors
+"Make doors open and close. Only enter when open. To open we need
+to click on it. Even for NPCs — they will open and close doors."
+
+Prompt 25 — NPCs Go Home at Night
+"NPCs have to leave when it's night and go sleep."
+(NPCs now go to their home building at night, door opens as they
+enter, closes behind them. At dawn they come back out.)
+
+Prompt 26 — Daily Serve Requirement
+"If not given everyone what they need in that day, game is over
+and have to restart."
+
+Prompt 27 — NPCs Leave After Being Served
+"Once they get what they want they have to go away from shop and
+not come for the day. Mind their own business."
+(Served NPCs now go to their home building instead of random
+locations near the shop. Wander system excludes Town Square for
+served NPCs. Night wander sends NPCs home instead of the tavern.)
+

@@ -1,8 +1,9 @@
-import React, { useRef } from 'react';
+import React, { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { LOCATIONS } from './locations';
 import { gameTime } from './timeState';
+import { useGameStore } from '../state/gameStore';
 
 interface MatProps { color: string; flatShading?: boolean }
 function Mat({ color, flatShading = true }: MatProps) {
@@ -79,13 +80,46 @@ interface HouseProps {
   w: number; h: number; d: number;
   wall: string; roof: string;
   chimneyH?: number;
+  doorId: string;
 }
 
-function House({ pos, w, h, d, wall, roof, chimneyH }: HouseProps) {
+function AnimatedDoor({ doorId, doorX, doorZ, h }: { doorId: string; doorX: number; doorZ: number; h: number }) {
+  const pivotRef = useRef<THREE.Group>(null);
+  const isOpen = useGameStore((s) => s.doors[doorId] ?? false);
+
+  useFrame(() => {
+    if (!pivotRef.current) return;
+    const target = isOpen ? -Math.PI / 2 : 0;
+    pivotRef.current.rotation.y = THREE.MathUtils.lerp(pivotRef.current.rotation.y, target, 0.1);
+  });
+
+  const toggle = (e: THREE.Event) => {
+    (e as unknown as { stopPropagation: () => void }).stopPropagation();
+    useGameStore.getState().toggleDoor(doorId);
+  };
+
+  return (
+    <group position={[doorX - 0.3, 0, doorZ]}>
+      <group ref={pivotRef}>
+        <mesh position={[0.3, h * 0.22, -0.04]} castShadow onClick={toggle}>
+          <boxGeometry args={[0.6, h * 0.44, 0.08]} />
+          <meshBasicMaterial color="#111111" />
+        </mesh>
+        <mesh position={[0.5, h * 0.2, -0.09]} onClick={toggle}>
+          <sphereGeometry args={[0.05, 6, 6]} />
+          <meshBasicMaterial color="#F0C040" />
+        </mesh>
+      </group>
+    </group>
+  );
+}
+
+function House({ pos, w, h, d, wall, roof, chimneyH, doorId }: HouseProps) {
   const hw = w / 2;
   const hd = d / 2;
   const wy = h * 0.55;
   const roofR = (Math.max(w, d) / 2) * 1.15;
+  const doorX = -w * 0.12;
   return (
     <group position={pos}>
       {/* Walls */}
@@ -104,11 +138,13 @@ function House({ pos, w, h, d, wall, roof, chimneyH }: HouseProps) {
           <Mat color="#555" />
         </mesh>
       )}
-      {/* Door on front face (-z) */}
-      <mesh position={[-w * 0.12, 0.55, -(hd + 0.03)]}>
-        <planeGeometry args={[0.55, 1.1]} />
-        <Mat color="#3a1a08" />
+      {/* Door frame */}
+      <mesh position={[doorX, 0.55, -(hd + 0.02)]}>
+        <boxGeometry args={[0.7, 1.15, 0.04]} />
+        <meshBasicMaterial color="#0a0a0a" />
       </mesh>
+      {/* Animated swinging door */}
+      <AnimatedDoor doorId={doorId} doorX={doorX} doorZ={-(hd + 0.04)} h={h} />
       {/* Window beside door */}
       <mesh position={[w * 0.28, wy, -(hd + 0.03)]}>
         <planeGeometry args={[0.4, 0.4]} />
@@ -123,6 +159,48 @@ function House({ pos, w, h, d, wall, roof, chimneyH }: HouseProps) {
         <planeGeometry args={[0.4, 0.4]} />
         <meshBasicMaterial color="#2a4a6a" />
       </mesh>
+    </group>
+  );
+}
+
+// ── Chimney Smoke ──────────────────────────────────────────────────────
+
+const SMOKE_COUNT = 6;
+
+function ChimneySmoke({ position }: { position: [number, number, number] }) {
+  const meshRefs = useRef<(THREE.Mesh | null)[]>([]);
+  const offsets = useMemo(
+    () => Array.from({ length: SMOKE_COUNT }, () => Math.random() * Math.PI * 2),
+    [],
+  );
+
+  useFrame(({ clock }) => {
+    const t = clock.elapsedTime;
+    for (let i = 0; i < SMOKE_COUNT; i++) {
+      const m = meshRefs.current[i];
+      if (!m) continue;
+      const phase = (t * 0.4 + offsets[i]) % (Math.PI * 2);
+      const progress = ((Math.sin(phase) + 1) / 2);
+      m.position.y = progress * 2.0;
+      m.position.x = Math.sin(t * 0.3 + offsets[i]) * 0.15;
+      m.position.z = Math.cos(t * 0.25 + offsets[i]) * 0.1;
+      const s = 0.08 + progress * 0.12;
+      m.scale.setScalar(s);
+      (m.material as THREE.MeshBasicMaterial).opacity = 0.5 * (1 - progress);
+    }
+  });
+
+  return (
+    <group position={position}>
+      {offsets.map((_, i) => (
+        <mesh
+          key={i}
+          ref={(el) => { meshRefs.current[i] = el; }}
+        >
+          <boxGeometry args={[1, 1, 1]} />
+          <meshBasicMaterial color="#aaa" transparent opacity={0.4} />
+        </mesh>
+      ))}
     </group>
   );
 }
@@ -149,7 +227,7 @@ function Tavern() {
   const [x, y, z] = LOCATIONS.tavern.position;
   return (
     <group>
-      <House pos={[x, y, z]} w={4} h={3} d={3.5} wall="#C8A96E" roof="#7B3F00" />
+      <House pos={[x, y, z]} w={4} h={3} d={3.5} wall="#C8A96E" roof="#7B3F00" doorId="tavern" />
       {/* Sign post */}
       <mesh position={[x + 2.4, y + 1.5, z]}>
         <cylinderGeometry args={[0.05, 0.05, 3, 5]} />
@@ -172,7 +250,8 @@ function Bakery() {
   const [x, y, z] = LOCATIONS.bakery.position;
   return (
     <group>
-      <House pos={[x, y, z]} w={4} h={2.5} d={3} wall="#CC7A5A" roof="#8B2500" chimneyH={1.8} />
+      <House pos={[x, y, z]} w={4} h={2.5} d={3} wall="#CC7A5A" roof="#8B2500" chimneyH={1.8} doorId="bakery" />
+      <ChimneySmoke position={[x + 1, y + 4.3, z + 0.6]} />
       <Barrel pos={[x - 2.3, y, z - 0.8]} />
       <Crate pos={[x - 2.3, y, z + 0.2]} />
     </group>
@@ -185,7 +264,8 @@ function Forge() {
   const [x, y, z] = LOCATIONS.forge.position;
   return (
     <group>
-      <House pos={[x, y, z]} w={3} h={3} d={3} wall="#6e7780" roof="#3a4048" chimneyH={2.4} />
+      <House pos={[x, y, z]} w={3} h={3} d={3} wall="#6e7780" roof="#3a4048" chimneyH={2.4} doorId="forge" />
+      <ChimneySmoke position={[x + 0.75, y + 5.4, z + 0.6]} />
       {/* Anvil */}
       <mesh position={[x - 1.2, y + 0.3, z - 0.5]}>
         <boxGeometry args={[0.6, 0.6, 0.4]} />
@@ -321,12 +401,147 @@ function VillageLanterns() {
   );
 }
 
+// ── Player's Shop Stall ────────────────────────────────────────────────
+
+function PlayerShop() {
+  return (
+    <group position={[0, 0, 2]}>
+      {/* Counter */}
+      <mesh position={[0, 0.5, 0]} castShadow>
+        <boxGeometry args={[2.4, 1, 0.8]} />
+        <Mat color="#8a6a40" />
+      </mesh>
+      {/* Counter top */}
+      <mesh position={[0, 1.02, 0]} castShadow>
+        <boxGeometry args={[2.6, 0.06, 0.9]} />
+        <Mat color="#a08050" />
+      </mesh>
+      {/* Awning posts */}
+      {([-1.2, 1.2] as number[]).map((ox, i) => (
+        <mesh key={i} position={[ox, 1.5, -0.35]} castShadow>
+          <cylinderGeometry args={[0.05, 0.05, 2, 5]} />
+          <Mat color="#5c3a1e" />
+        </mesh>
+      ))}
+      {/* Awning */}
+      <mesh position={[0, 2.5, -0.1]} castShadow>
+        <boxGeometry args={[2.8, 0.06, 1.2]} />
+        <Mat color="#c04040" />
+      </mesh>
+      {/* Items on counter */}
+      <mesh position={[-0.7, 1.2, 0]} castShadow>
+        <boxGeometry args={[0.25, 0.25, 0.25]} />
+        <Mat color="#8a8a8a" />
+      </mesh>
+      <mesh position={[-0.3, 1.15, 0.1]} castShadow>
+        <cylinderGeometry args={[0.1, 0.1, 0.22, 6]} />
+        <Mat color="#4a9a5a" />
+      </mesh>
+      <mesh position={[0.1, 1.2, -0.05]} castShadow>
+        <boxGeometry args={[0.2, 0.28, 0.15]} />
+        <Mat color="#8a5a30" />
+      </mesh>
+      <mesh position={[0.5, 1.15, 0.05]} castShadow>
+        <boxGeometry args={[0.22, 0.18, 0.22]} />
+        <Mat color="#c07830" />
+      </mesh>
+      <mesh position={[0.8, 1.12, 0]} castShadow>
+        <cylinderGeometry args={[0.12, 0.1, 0.2, 6]} />
+        <Mat color="#e0d0a0" />
+      </mesh>
+    </group>
+  );
+}
+
+// ── Player's House ────────────────────────────────────────────────────
+
+function PlayerHouse() {
+  const doorX = -4 - 3 * 0.12;
+  const doorZ = 8 - 1.25 - 0.04;
+  return (
+    <group>
+      <House pos={[-4, 0, 8]} w={3} h={2.5} d={2.5} wall="#B8956E" roof="#6B4020" doorId="player_house" />
+      {/* "Home" sign above door */}
+      <mesh position={[doorX, 1.4, doorZ - 0.06]}>
+        <boxGeometry args={[0.6, 0.2, 0.04]} />
+        <Mat color="#8a6a40" />
+      </mesh>
+      {/* Bed frame */}
+      <mesh position={[-4.3, 0.35, 8.5]} castShadow>
+        <boxGeometry args={[0.8, 0.7, 1.4]} />
+        <meshLambertMaterial color="#8a5a40" flatShading />
+      </mesh>
+      {/* Mattress */}
+      <mesh position={[-4.3, 0.72, 8.5]}>
+        <boxGeometry args={[0.75, 0.1, 1.35]} />
+        <meshLambertMaterial color="#e0d8c8" flatShading />
+      </mesh>
+      {/* Pillow */}
+      <mesh position={[-4.3, 0.82, 8.95]}>
+        <boxGeometry args={[0.5, 0.1, 0.3]} />
+        <meshLambertMaterial color="#f0e8d8" flatShading />
+      </mesh>
+      {/* Small table */}
+      <mesh position={[-3.1, 0.4, 8.6]} castShadow>
+        <boxGeometry args={[0.4, 0.8, 0.4]} />
+        <meshLambertMaterial color="#7a5a30" flatShading />
+      </mesh>
+    </group>
+  );
+}
+
+// ── Food Stall (near Tavern) ──────────────────────────────────────────
+
+function FoodStall() {
+  return (
+    <group position={[6, 0, 3.5]}>
+      {/* Table */}
+      <mesh position={[0, 0.45, 0]} castShadow>
+        <boxGeometry args={[1.0, 0.9, 0.7]} />
+        <Mat color="#7a5a30" />
+      </mesh>
+      {/* Table top */}
+      <mesh position={[0, 0.92, 0]} castShadow>
+        <boxGeometry args={[1.1, 0.06, 0.8]} />
+        <Mat color="#8a6a40" />
+      </mesh>
+      {/* Bread */}
+      <mesh position={[-0.25, 1.05, 0]} castShadow>
+        <boxGeometry args={[0.2, 0.15, 0.15]} />
+        <Mat color="#d4a040" />
+      </mesh>
+      {/* Stew pot */}
+      <mesh position={[0.15, 1.05, 0.1]} castShadow>
+        <cylinderGeometry args={[0.12, 0.12, 0.15, 8]} />
+        <Mat color="#8a4020" />
+      </mesh>
+      {/* Apple */}
+      <mesh position={[0.35, 1.0, -0.1]} castShadow>
+        <sphereGeometry args={[0.08, 6, 6]} />
+        <Mat color="#4a8a2a" />
+      </mesh>
+      {/* Sign post */}
+      <mesh position={[0.6, 1.3, 0]} castShadow>
+        <cylinderGeometry args={[0.03, 0.03, 0.8, 5]} />
+        <Mat color="#5c3a1e" />
+      </mesh>
+      <mesh position={[0.6, 1.65, 0]}>
+        <boxGeometry args={[0.5, 0.25, 0.04]} />
+        <Mat color="#c8a056" />
+      </mesh>
+    </group>
+  );
+}
+
 // ── Root export ─────────────────────────────────────────────────────────
 
 export function Buildings() {
   return (
     <group>
       <TownSquare />
+      <PlayerShop />
+      <PlayerHouse />
+      <FoodStall />
       <Tavern />
       <Bakery />
       <Forge />

@@ -1,6 +1,7 @@
 import { useGameStore, Vec3 } from '../state/gameStore';
 import { findLocation } from '../world/locations';
 import { NPC_CONFIGS, NPC_CONFIG_MAP } from '../entities/npcConfig';
+import { moveNPCTo, blockedReply } from './npcAI';
 
 // ── Typed NPC command ─────────────────────────────────────────────────────────
 
@@ -162,11 +163,19 @@ export async function executeAction(npcId: string, action: ParsedAction): Promis
 
   // Structural command
   switch (action.type) {
-    case 'goto':
+    case 'goto': {
       store.setNPCFollowing(npcId, null);
-      store.moveNPC(npcId, action.position);
+      const reached = moveNPCTo(npcId, action.position);
+      if (!reached) {
+        const blocked = blockedReply(npcId);
+        store.addMessage({ from: npcId, to: 'player', text: blocked });
+        store.addLog(`${config.name}: ${blocked}`);
+        scheduleSpeechBubble(npcId, blocked);
+        return blocked;
+      }
       store.setNPCActivity(npcId, `heading to ${action.locationName}`);
       break;
+    }
 
     case 'follow':
       store.setNPCFollowing(npcId, 'player');
@@ -181,9 +190,7 @@ export async function executeAction(npcId: string, action: ParsedAction): Promis
       break;
 
     case 'deliver_message': {
-      // Register the message as a global rumor (player is origin, messenger is first knower)
       const rumorId = store.addRumor(action.message, 'player', npcId);
-      // Queue a pending delivery — the NPC will walk to the target and deliver on arrival
       store.setPendingDelivery(npcId, {
         toNpcId: action.toNpcId,
         rumorId,
@@ -192,7 +199,11 @@ export async function executeAction(npcId: string, action: ParsedAction): Promis
       store.setNPCFollowing(npcId, null);
       store.setNPCActivity(npcId, `heading to find ${action.toNpcName}`);
       const target = store.npcs.find((n) => n.id === action.toNpcId);
-      if (target) store.moveNPC(npcId, target.position);
+      if (target) {
+        if (!moveNPCTo(npcId, target.position)) {
+          store.moveNPC(npcId, target.position);
+        }
+      }
       break;
     }
   }

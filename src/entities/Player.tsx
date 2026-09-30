@@ -4,7 +4,7 @@ import { Platform } from 'react-native';
 import * as THREE from 'three';
 import { useGameStore } from '../state/gameStore';
 import { cameraYaw } from '../world/cameraState';
-import { startConversation } from '../systems/questSystem';
+import { openItemPopup, showNpcRequest } from '../systems/questSystem';
 import { BoxFace } from './BoxFace';
 import { joystickInput } from './joystickState';
 import { wouldCollide } from '../systems/collision';
@@ -16,6 +16,10 @@ const LEG_COLOR = '#222A60';
 const SKIN = '#F5CBA7';
 const HAIR = '#5a3a1a';
 const held: Record<string, boolean> = {};
+
+const BED_POS: [number, number] = [-4, 8.5];
+const FOOD_POS: [number, number] = [6, 3.5];
+const SPECIAL_R = 2.5;
 
 function findNearestNpc(px: number, pz: number): string | null {
   const npcs = useGameStore.getState().npcs;
@@ -53,7 +57,23 @@ export function PlayerMesh() {
       if (key === 'e') {
         const [px, , pz] = posRef.current;
         const id = findNearestNpc(px, pz);
-        if (id) startConversation(id);
+        if (id) {
+          openItemPopup(id);
+        } else {
+          const bedD = Math.sqrt((px - BED_POS[0]) ** 2 + (pz - BED_POS[1]) ** 2);
+          if (bedD < SPECIAL_R) {
+            useGameStore.getState().setIsSleeping(true);
+          } else {
+            const foodD = Math.sqrt((px - FOOD_POS[0]) ** 2 + (pz - FOOD_POS[1]) ** 2);
+            if (foodD < SPECIAL_R) {
+              useGameStore.getState().setShowFoodPopup(true);
+            }
+          }
+        }
+      }
+      if (key === 'f3') {
+        e.preventDefault();
+        useGameStore.getState().toggleDebug();
       }
     };
 
@@ -67,6 +87,9 @@ export function PlayerMesh() {
   }, []);
 
   useFrame(({ clock }, delta) => {
+    const gState = useGameStore.getState();
+    if (gState.isSleeping || gState.gameOver) return;
+
     const [x, y, z] = posRef.current;
     const yaw = cameraYaw.current;
     let dx = 0;
@@ -106,7 +129,10 @@ export function PlayerMesh() {
     const [cx, , cz] = posRef.current;
     const nearId = findNearestNpc(cx, cz);
     const store = useGameStore.getState();
-    if (nearId !== store.nearbyNpcId) store.setNearbyNpc(nearId);
+    if (nearId !== store.nearbyNpcId) {
+      store.setNearbyNpc(nearId);
+      if (nearId) showNpcRequest(nearId);
+    }
 
     if (groupRef.current) {
       const [nx, , nz] = posRef.current;

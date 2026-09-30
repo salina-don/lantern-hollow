@@ -1,10 +1,10 @@
-import React, { useRef } from 'react';
+import React, { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { Text, Billboard } from '@react-three/drei';
 import { useGameStore } from '../state/gameStore';
 import { NPC_CONFIG_MAP } from './npcConfig';
-import { startConversation } from '../systems/questSystem';
+import { openItemPopup } from '../systems/questSystem';
 import { BoxFace } from './BoxFace';
 
 const SKIN = '#F5CBA7';
@@ -59,6 +59,47 @@ function RoleAccessory({ npcId }: { npcId: string }) {
   }
 }
 
+const DUST_COUNT = 4;
+
+function DustPuff({ movingRef }: { movingRef: React.RefObject<boolean> }) {
+  const refs = useRef<(THREE.Mesh | null)[]>([]);
+  const offsets = useMemo(
+    () => Array.from({ length: DUST_COUNT }, () => Math.random() * Math.PI * 2),
+    [],
+  );
+
+  useFrame(({ clock }) => {
+    const t = clock.elapsedTime;
+    for (let i = 0; i < DUST_COUNT; i++) {
+      const m = refs.current[i];
+      if (!m) continue;
+      if (!movingRef.current) {
+        m.visible = false;
+        continue;
+      }
+      m.visible = true;
+      const p = ((t * 1.5 + offsets[i]) % 1.5);
+      m.position.x = Math.sin(offsets[i] + t) * 0.2;
+      m.position.z = Math.cos(offsets[i] + t * 0.8) * 0.2;
+      m.position.y = p * 0.3;
+      const s = 0.04 + p * 0.04;
+      m.scale.setScalar(s);
+      (m.material as THREE.MeshBasicMaterial).opacity = 0.35 * (1 - p / 1.5);
+    }
+  });
+
+  return (
+    <group position={[0, 0.05, 0]}>
+      {offsets.map((_, i) => (
+        <mesh key={i} ref={(el) => { refs.current[i] = el; }} visible={false}>
+          <boxGeometry args={[1, 1, 1]} />
+          <meshBasicMaterial color="#b0a080" transparent opacity={0.3} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
 interface Props { npcId: string }
 
 export function NPCMesh({ npcId }: Props) {
@@ -66,6 +107,7 @@ export function NPCMesh({ npcId }: Props) {
   const isSelected = useGameStore((s) => s.activeConversation === npcId);
   const isNearby = useGameStore((s) => s.nearbyNpcId === npcId);
   const speechBubble = useGameStore((s) => s.npcs.find((n) => n.id === npcId)?.speechBubble ?? null);
+  const emotion = useGameStore((s) => s.npcs.find((n) => n.id === npcId)?.emotion ?? 'neutral');
 
   const talkingToPos = useGameStore((s) => {
     const me = s.npcs.find((n) => n.id === npcId);
@@ -78,6 +120,7 @@ export function NPCMesh({ npcId }: Props) {
   const leftLegRef = useRef<THREE.Group>(null);
   const rightLegRef = useRef<THREE.Group>(null);
   const prevXZ = useRef<[number, number]>([0, 0]);
+  const isMoving = useRef(false);
 
   const config = NPC_CONFIG_MAP[npcId];
 
@@ -91,6 +134,7 @@ export function NPCMesh({ npcId }: Props) {
     const dx = cur.position[0] - prevXZ.current[0];
     const dz = cur.position[2] - prevXZ.current[1];
     const moving = Math.abs(dx) > 0.001 || Math.abs(dz) > 0.001;
+    isMoving.current = moving;
     prevXZ.current = [cur.position[0], cur.position[2]];
 
     const swing = moving ? Math.sin(clock.elapsedTime * 8 + phase) * 0.6 : 0;
@@ -107,7 +151,7 @@ export function NPCMesh({ npcId }: Props) {
     ? Math.atan2(talkingToPos[0] - x, talkingToPos[2] - z)
     : 0;
 
-  const handleClick = () => startConversation(npcId);
+  const handleClick = () => openItemPopup(npcId);
 
   const color = config.color;
   const legColor = darkenHex(color);
@@ -140,7 +184,7 @@ export function NPCMesh({ npcId }: Props) {
         <meshLambertMaterial color={SKIN} />
       </mesh>
 
-      <BoxFace />
+      <BoxFace emotion={emotion} />
 
       {/* Left arm pivot */}
       <group ref={leftArmRef} position={[-0.26, 1.25, 0]}>
@@ -176,6 +220,9 @@ export function NPCMesh({ npcId }: Props) {
 
       {/* Role-specific accessory */}
       <RoleAccessory npcId={npcId} />
+
+      {/* Dust puff when walking */}
+      <DustPuff movingRef={isMoving} />
 
       {/* Talking indicator */}
       {npc.isTalking && (
