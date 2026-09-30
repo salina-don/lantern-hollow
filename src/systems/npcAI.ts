@@ -49,6 +49,10 @@ export function isNPCAtShop(npcId: string): boolean {
   return shopVisitors.has(npcId);
 }
 
+export function isNPCFrontOfQueue(npcId: string): boolean {
+  return shopVisitors.has(npcId) && shopSpotAssignment.get(npcId) === 0;
+}
+
 function randomLocationAwayFromShop(): Location {
   const locs = Object.values(LOCATIONS).filter((l) => l.name !== 'Town Square');
   return locs[Math.floor(Math.random() * locs.length)];
@@ -69,6 +73,25 @@ export function markNPCServed(npcId: string): void {
   setTimeout(() => {
     useGameStore.getState().setNPCEmotion(npcId, 'neutral');
   }, 4000);
+
+  advanceQueue();
+}
+
+function advanceQueue(): void {
+  const entries = Array.from(shopSpotAssignment.entries()).sort((a, b) => a[1] - b[1]);
+  shopSpotAssignment.clear();
+  const store = useGameStore.getState();
+  entries.forEach(([id], newIdx) => {
+    shopSpotAssignment.set(id, newIdx);
+    moveNPCTo(id, SHOP_SPOTS[newIdx]);
+  });
+  if (entries.length > 0) {
+    const frontId = entries[0][0];
+    if (shopVisitors.get(frontId) === 'waiting') {
+      showNpcRequest(frontId);
+      lastBubbleRefresh.set(frontId, Date.now());
+    }
+  }
 }
 
 const TAVERN_SPOTS: Vec3[] = [
@@ -178,16 +201,22 @@ export function tickNPCs(delta: number): void {
     // ── shop arrival + waiting ──
     if (shopVisitors.get(npc.id) === 'visiting' && npc.path.length === 0 && !npc.targetPosition) {
       shopVisitors.set(npc.id, 'waiting');
-      showNpcRequest(npc.id);
-      lastBubbleRefresh.set(npc.id, Date.now());
+      const isFirst = shopSpotAssignment.get(npc.id) === 0;
+      if (isFirst) {
+        showNpcRequest(npc.id);
+        lastBubbleRefresh.set(npc.id, Date.now());
+      }
       store.setNPCActivity(npc.id, 'waiting at the shop');
       store.setNPCEmotion(npc.id, 'waiting');
     }
     if (shopVisitors.get(npc.id) === 'waiting') {
-      const now = Date.now();
-      if (!npc.speechBubble && now - (lastBubbleRefresh.get(npc.id) ?? 0) > 4500) {
-        showNpcRequest(npc.id);
-        lastBubbleRefresh.set(npc.id, now);
+      const isFirst = shopSpotAssignment.get(npc.id) === 0;
+      if (isFirst) {
+        const now = Date.now();
+        if (!npc.speechBubble && now - (lastBubbleRefresh.get(npc.id) ?? 0) > 4500) {
+          showNpcRequest(npc.id);
+          lastBubbleRefresh.set(npc.id, now);
+        }
       }
       continue;
     }
@@ -366,17 +395,11 @@ export function triggerNightBehavior(): void {
     return !servedToday.has(npc.id);
   });
 
-  if (unserved.length > 0) {
-    const names = unserved.map((n) => NPC_CONFIG_MAP[n.id]?.name ?? n.id).join(', ');
-    shopVisitors.clear();
-    shopSpotAssignment.clear();
-    store.setGameOver(true, `You didn't serve everyone today! ${names} left unhappy.`);
-    store.addLog(`GAME OVER: ${names} never got what they needed.`);
-    return;
-  }
+  shopVisitors.clear();
+  shopSpotAssignment.clear();
 
   store.npcs.forEach((npc, i) => {
-    if (npc.following || npc.isTalking || npc.pendingDelivery || shopVisitors.has(npc.id)) return;
+    if (npc.following || npc.isTalking || npc.pendingDelivery) return;
     const config = NPC_CONFIG_MAP[npc.id];
     if (!config) return;
     const homeLoc = LOCATIONS[config.homeLocation];
@@ -385,12 +408,24 @@ export function triggerNightBehavior(): void {
     if (!moveNPCTo(npc.id, dest)) {
       store.moveNPC(npc.id, dest);
     }
-    store.setNPCActivity(npc.id, 'going home to sleep');
-    setTimeout(() => {
-      const s = useGameStore.getState();
-      s.setSpeechBubble(npc.id, NIGHT_LINES[npc.id] ?? 'Good night!');
-      setTimeout(() => useGameStore.getState().setSpeechBubble(npc.id, null), 4000);
-    }, i * 1200);
+
+    const isUnserved = unserved.some((u) => u.id === npc.id);
+    if (isUnserved) {
+      store.setNPCEmotion(npc.id, 'waiting');
+      store.setNPCActivity(npc.id, 'leaving angry');
+      setTimeout(() => {
+        const s = useGameStore.getState();
+        s.setSpeechBubble(npc.id, 'You never helped me!');
+        setTimeout(() => useGameStore.getState().setSpeechBubble(npc.id, null), 3000);
+      }, i * 800);
+    } else {
+      store.setNPCActivity(npc.id, 'going home to sleep');
+      setTimeout(() => {
+        const s = useGameStore.getState();
+        s.setSpeechBubble(npc.id, NIGHT_LINES[npc.id] ?? 'Good night!');
+        setTimeout(() => useGameStore.getState().setSpeechBubble(npc.id, null), 4000);
+      }, i * 1200);
+    }
 
     const doorId = HOME_DOOR[config.homeLocation];
     if (doorId) {
@@ -404,6 +439,15 @@ export function triggerNightBehavior(): void {
       }, 4000 + i * 1200);
     }
   });
+
+  if (unserved.length > 0) {
+    const names = unserved.map((n) => NPC_CONFIG_MAP[n.id]?.name ?? n.id).join(', ');
+    store.addLog(`${names} left unhappy — you didn't serve them today!`);
+    setTimeout(() => {
+      const s = useGameStore.getState();
+      s.setGameOver(true, `You didn't serve everyone today! ${names} left unhappy.`);
+    }, 3000);
+  }
 }
 
 export function triggerDawnBehavior(): void {

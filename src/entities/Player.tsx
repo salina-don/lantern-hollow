@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { useGameStore } from '../state/gameStore';
 import { cameraYaw } from '../world/cameraState';
 import { openItemPopup, showNpcRequest } from '../systems/questSystem';
+import { isNPCAtShop, isNPCFrontOfQueue } from '../systems/npcAI';
 import { BoxFace } from './BoxFace';
 import { joystickInput } from './joystickState';
 import { wouldCollide } from '../systems/collision';
@@ -58,7 +59,9 @@ export function PlayerMesh() {
         const [px, , pz] = posRef.current;
         const id = findNearestNpc(px, pz);
         if (id) {
-          openItemPopup(id);
+          if (!isNPCAtShop(id) || isNPCFrontOfQueue(id)) {
+            openItemPopup(id);
+          }
         } else {
           const bedD = Math.sqrt((px - BED_POS[0]) ** 2 + (pz - BED_POS[1]) ** 2);
           if (bedD < SPECIAL_R) {
