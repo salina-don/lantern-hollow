@@ -18,8 +18,8 @@ export function StatsLoop() {
     }
 
     hungerAcc.current += delta;
-    if (hungerAcc.current >= 8) {
-      hungerAcc.current -= 8;
+    if (hungerAcc.current >= 4) {
+      hungerAcc.current -= 4;
       if (store.hunger > 0) store.adjustHunger(-1);
     }
 
