@@ -524,33 +524,38 @@ export function startNPCWander(): () => void {
 
   const interactionInterval = setInterval(checkInteractions, 4000);
 
-  let shopTimer: ReturnType<typeof setTimeout>;
-  let firstShop = true;
+  let shopTimer: ReturnType<typeof setTimeout> | null = null;
   function scheduleShopVisit() {
-    const delay = firstShop ? 4000 : 5000;
-    firstShop = false;
+    if (shopTimer !== null) return;
     shopTimer = setTimeout(() => {
+      shopTimer = null;
       const s = useGameStore.getState();
-      if (!s.isSleeping && !s.gameOver && shopVisitors.size === 0) {
-        const candidates = s.npcs.filter((n) => {
-          if (shopVisitors.has(n.id) || n.isTalking || n.following || n.pendingDelivery) return false;
-          if (servedToday.has(n.id)) return false;
-          const quest = QUEST_BY_NPC[n.id];
-          if (quest && (s.quests[quest.id] ?? 0) >= 1) return false;
-          return true;
-        });
-        if (candidates.length > 0) {
-          const npc = candidates[Math.floor(Math.random() * candidates.length)];
-          shopSpotAssignment.set(npc.id, 0);
-          shopVisitors.set(npc.id, 'visiting');
-          moveNPCTo(npc.id, SHOP_SPOTS[0]);
-          const cfg = NPC_CONFIG_MAP[npc.id];
-          s.setNPCActivity(npc.id, 'heading to the shop');
-          s.addLog(`${cfg?.name ?? npc.id} is coming to your shop!`);
-        }
+      if (s.isSleeping || s.gameOver || isNight(gameTime.current)) {
+        scheduleShopVisit();
+        return;
+      }
+      if (shopVisitors.size > 0) {
+        scheduleShopVisit();
+        return;
+      }
+      const candidates = s.npcs.filter((n) => {
+        if (shopVisitors.has(n.id) || n.isTalking || n.following || n.pendingDelivery) return false;
+        if (servedToday.has(n.id)) return false;
+        const quest = QUEST_BY_NPC[n.id];
+        if (quest && (s.quests[quest.id] ?? 0) >= 1) return false;
+        return true;
+      });
+      if (candidates.length > 0) {
+        const npc = candidates[Math.floor(Math.random() * candidates.length)];
+        shopSpotAssignment.set(npc.id, 0);
+        shopVisitors.set(npc.id, 'visiting');
+        moveNPCTo(npc.id, SHOP_SPOTS[0]);
+        const cfg = NPC_CONFIG_MAP[npc.id];
+        s.setNPCActivity(npc.id, 'heading to the shop');
+        s.addLog(`${cfg?.name ?? npc.id} is coming to your shop!`);
       }
       scheduleShopVisit();
-    }, delay);
+    }, 5000);
   }
   scheduleShopVisit();
 
@@ -558,6 +563,6 @@ export function startNPCWander(): () => void {
     timers.forEach((t) => clearTimeout(t));
     timers.clear();
     clearInterval(interactionInterval);
-    clearTimeout(shopTimer);
+    if (shopTimer !== null) clearTimeout(shopTimer);
   };
 }
