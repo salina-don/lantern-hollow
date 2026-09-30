@@ -11,7 +11,7 @@ const NPC_SPEED = 2.5;
 const NPC_RADIUS = 0.3;
 const TALK_DIST = 2.2;
 const ARRIVE_DIST = 0.15;
-const WANDER_BASE_MS = 8000;
+const WANDER_BASE_MS = 3000;
 
 interface DoorPos { id: string; x: number; z: number }
 const BUILDING_DOORS: DoorPos[] = [
@@ -39,7 +39,7 @@ const servedToday = new Set<string>();
 let nextVisitTimer: ReturnType<typeof setTimeout> | null = null;
 
 function sendNextNPC(): void {
-  if (nextVisitTimer !== null) clearTimeout(nextVisitTimer);
+  if (nextVisitTimer !== null) { clearTimeout(nextVisitTimer); nextVisitTimer = null; }
   nextVisitTimer = setTimeout(() => {
     nextVisitTimer = null;
     const s = useGameStore.getState();
@@ -54,7 +54,9 @@ function sendNextNPC(): void {
     });
     if (candidates.length > 0) {
       const npc = candidates[Math.floor(Math.random() * candidates.length)];
+      shopSpotAssignment.clear();
       shopSpotAssignment.set(npc.id, 0);
+      shopVisitors.clear();
       shopVisitors.set(npc.id, 'visiting');
       moveNPCTo(npc.id, SHOP_SPOTS[0]);
       const cfg = NPC_CONFIG_MAP[npc.id];
@@ -524,7 +526,7 @@ export function startNPCWander(): () => void {
             store.setNPCActivity(npcId, `heading to ${loc.name}`);
           }
         }
-        scheduleWander(npcId, WANDER_BASE_MS + Math.random() * 5000);
+        scheduleWander(npcId, WANDER_BASE_MS + Math.random() * 3000);
       }, delay),
     );
   }
