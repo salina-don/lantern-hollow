@@ -529,29 +529,26 @@ export function startNPCWander(): () => void {
   let shopTimer: ReturnType<typeof setTimeout>;
   let firstShop = true;
   function scheduleShopVisit() {
-    const delay = firstShop ? 4000 : 6000 + Math.random() * 8000;
+    const delay = firstShop ? 4000 : 5000;
     firstShop = false;
     shopTimer = setTimeout(() => {
       const s = useGameStore.getState();
-      if (!s.isSleeping && !s.gameOver) {
-        const spotIdx = nextFreeSpot();
-        if (spotIdx >= 0) {
-          const candidates = s.npcs.filter((n) => {
-            if (shopVisitors.has(n.id) || n.isTalking || n.following || n.pendingDelivery) return false;
-            if (servedToday.has(n.id)) return false;
-            const quest = QUEST_BY_NPC[n.id];
-            if (quest && (s.quests[quest.id] ?? 0) >= 1) return false;
-            return true;
-          });
-          if (candidates.length > 0) {
-            const npc = candidates[Math.floor(Math.random() * candidates.length)];
-            shopSpotAssignment.set(npc.id, spotIdx);
-            shopVisitors.set(npc.id, 'visiting');
-            moveNPCTo(npc.id, SHOP_SPOTS[spotIdx]);
-            const cfg = NPC_CONFIG_MAP[npc.id];
-            s.setNPCActivity(npc.id, 'heading to the shop');
-            s.addLog(`${cfg?.name ?? npc.id} is coming to your shop!`);
-          }
+      if (!s.isSleeping && !s.gameOver && shopVisitors.size === 0) {
+        const candidates = s.npcs.filter((n) => {
+          if (shopVisitors.has(n.id) || n.isTalking || n.following || n.pendingDelivery) return false;
+          if (servedToday.has(n.id)) return false;
+          const quest = QUEST_BY_NPC[n.id];
+          if (quest && (s.quests[quest.id] ?? 0) >= 1) return false;
+          return true;
+        });
+        if (candidates.length > 0) {
+          const npc = candidates[Math.floor(Math.random() * candidates.length)];
+          shopSpotAssignment.set(npc.id, 0);
+          shopVisitors.set(npc.id, 'visiting');
+          moveNPCTo(npc.id, SHOP_SPOTS[0]);
+          const cfg = NPC_CONFIG_MAP[npc.id];
+          s.setNPCActivity(npc.id, 'heading to the shop');
+          s.addLog(`${cfg?.name ?? npc.id} is coming to your shop!`);
         }
       }
       scheduleShopVisit();
