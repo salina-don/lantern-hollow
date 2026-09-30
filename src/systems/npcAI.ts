@@ -505,9 +505,7 @@ export function startNPCWander(): () => void {
               }
             }
           } else {
-            const loc = servedToday.has(npcId)
-              ? randomLocationAwayFromShop()
-              : randomLocation();
+            const loc = randomLocationAwayFromShop();
             if (!moveNPCTo(npcId, loc.position)) {
               store.moveNPC(npcId, loc.position);
             }
