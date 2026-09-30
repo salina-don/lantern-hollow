@@ -1,6 +1,6 @@
 export type GamePhase = 'dawn' | 'morning' | 'noon' | 'afternoon' | 'dusk' | 'night';
 
-export const DAY_DURATION = 120;
+export const DAY_DURATION = 240;
 export const HOURS_PER_SECOND = 24 / DAY_DURATION;
 
 export const gameTime = { current: 8 };
